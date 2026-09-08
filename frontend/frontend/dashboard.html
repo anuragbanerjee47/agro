@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Universal AgroNode Field Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans p-4 md:p-6 min-h-screen">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header Section -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md gap-4">
+      <div>
+        <h1 class="text-xl font-bold text-emerald-400">Universal AgroNode Field Console</h1>
+        <p class="text-xs text-slate-400">Edge ID: ESP32_VIRTUAL_NODE_01</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <label for="cropSelect" class="text-xs text-slate-300 font-medium">Active Crop Group:</label>
+        <select id="cropSelect" class="bg-slate-700 text-xs text-white rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <option value="group1">Group 1: Wetland (Rice, Sugarcane)</option>
+          <option value="group2">Group 2: Dryland / Cereals (Wheat, Maize)</option>
+          <option value="group3">Group 3: Legumes / Pulses (Gram, Lentil)</option>
+          <option value="group4">Group 4: Oilseeds (Mustard, Groundnut)</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Top Telemetry Cards -->
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+        <div class="text-[10px] uppercase font-semibold text-emerald-400">Nitrogen</div>
+        <div id="card-n" class="text-lg font-bold text-white mt-1">-- mg/kg</div>
+      </div>
+      <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+        <div class="text-[10px] uppercase font-semibold text-amber-400">Phosphorus</div>
+        <div id="card-p" class="text-lg font-bold text-white mt-1">-- mg/kg</div>
+      </div>
+      <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+        <div class="text-[10px] uppercase font-semibold text-purple-400">Potassium</div>
+        <div id="card-k" class="text-lg font-bold text-white mt-1">-- mg/kg</div>
+      </div>
+      <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+        <div class="text-[10px] uppercase font-semibold text-sky-400">Soil pH</div>
+        <div id="card-ph" class="text-lg font-bold text-white mt-1">--</div>
+      </div>
+      <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+        <div class="text-[10px] uppercase font-semibold text-cyan-400">Moisture</div>
+        <div id="card-moist" class="text-lg font-bold text-white mt-1">-- %</div>
+      </div>
+      <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+        <div class="text-[10px] uppercase font-semibold text-rose-400">Canopy Temp</div>
+        <div id="card-canopy" class="text-lg font-bold text-white mt-1">-- °C</div>
+      </div>
+    </section>
+
+    <!-- Colorimeter Pill -->
+    <section class="bg-slate-800 p-3 rounded-lg border border-slate-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div class="flex items-center gap-4">
+        <span class="font-semibold text-slate-300">ESP32-CAM Colorimeter:</span>
+        <span>Nitrate: <strong id="strip-nitrate" class="text-emerald-400">-- ppm</strong></span>
+        <span>Phosphate: <strong id="strip-phosphate" class="text-amber-400">-- ppm</strong></span>
+        <span>Zinc: <strong id="strip-zinc" class="text-purple-400">-- ppm</strong></span>
+      </div>
+      <span class="text-[11px] bg-emerald-900/60 text-emerald-300 px-2.5 py-0.5 rounded border border-emerald-700">Beer-Lambert Calibrated</span>
+    </section>
+
+    <!-- Dual Trend Charts -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
+        <h3 class="text-xs font-semibold text-slate-300 mb-2">Soil NPK Dynamics (mg/kg)</h3>
+        <div class="h-56">
+          <canvas id="npkChart"></canvas>
+        </div>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
+        <h3 class="text-xs font-semibold text-slate-300 mb-2">Soil pH & Moisture Dynamics</h3>
+        <div class="h-56">
+          <canvas id="phMoistChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historical Telemetry Table with Filter Controls -->
+    <section class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h3 class="text-sm font-semibold text-slate-300">Recent Historical Telemetry (SQLite Log)</h3>
+        <div class="flex items-center gap-2">
+          <select id="filter-alerts" onchange="fetchHistory()" class="bg-slate-700 text-xs text-white rounded px-2.5 py-1 border border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            <option value="all">All Telemetry</option>
+            <option value="alerts_only">Only Alerts</option>
+            <option value="normal">Normal</option>
+          </select>
+          <select id="filter-limit" onchange="fetchHistory()" class="bg-slate-700 text-xs text-white rounded px-2.5 py-1 border border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            <option value="12">12 Rows</option>
+            <option value="25">25 Rows</option>
+            <option value="50">50 Rows</option>
+          </select>
+          <button onclick="exportFilteredCsv()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1 rounded shadow transition">
+            Export Filtered CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700 text-slate-400 uppercase text-[10px]">
+              <th class="py-2 px-2">Time</th>
+              <th class="py-2 px-2">Profile</th>
+              <th class="py-2 px-2">NPK (mg/kg)</th>
+              <th class="py-2 px-2">pH</th>
+              <th class="py-2 px-2">Moisture</th>
+              <th class="py-2 px-2">Canopy</th>
+              <th class="py-2 px-2">Alerts</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody" class="divide-y divide-slate-700/50 text-slate-200">
+            <tr><td colspan="7" class="py-3 px-2 text-center text-slate-500">Loading telemetry records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Chart 1: NPK Chart
+    const ctxNpk = document.getElementById('npkChart').getContext('2d');
+    const npkChart = new Chart(ctxNpk, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Nitrogen', data: [], borderColor: '#34d399', backgroundColor: 'rgba(52, 211, 153, 0.1)', tension: 0.3, fill: true },
+          { label: 'Phosphorus', data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251, 191, 36, 0.1)', tension: 0.3, fill: true },
+          { label: 'Potassium', data: [], borderColor: '#c084fc', backgroundColor: 'rgba(192, 132, 252, 0.1)', tension: 0.3, fill: true }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#334155' } },
+          y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#334155' } }
+        },
+        plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } }
+      }
+    });
+
+    // Chart 2: pH & Moisture Dual-Axis Chart
+    const ctxPhMoist = document.getElementById('phMoistChart').getContext('2d');
+    const phMoistChart = new Chart(ctxPhMoist, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'pH', data: [], borderColor: '#38bdf8', tension: 0.3, yAxisID: 'y' },
+          { label: 'Moisture (%)', data: [], borderColor: '#22d3ee', tension: 0.3, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#334155' } },
+          y: { type: 'linear', position: 'left', min: 4, max: 10, ticks: { color: '#38bdf8', font: { size: 10 } }, grid: { color: '#334155' } },
+          y1: { type: 'linear', position: 'right', min: 0, max: 100, ticks: { color: '#22d3ee', font: { size: 10 } }, grid: { drawOnChartArea: false } }
+        },
+        plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } }
+      }
+    });
+
+    async function fetchLatest() {
+      try {
+        const res = await fetch('/api/dashboard');
+        if (!res.ok) return;
+        const raw = await res.json();
+        const t = raw.telemetry || raw.latest || raw;
+        const a = raw.analysis || {};
+        
+        const npk = t.soil_npk || [t.nitrogen, t.phosphorus, t.potassium];
+        if (npk && npk.length >= 3) {
+          if (npk[0] !== undefined) document.getElementById('card-n').textContent = Number(npk[0]).toFixed(1) + ' mg/kg';
+          if (npk[1] !== undefined) document.getElementById('card-p').textContent = Number(npk[1]).toFixed(1) + ' mg/kg';
+          if (npk[2] !== undefined) document.getElementById('card-k').textContent = Number(npk[2]).toFixed(1) + ' mg/kg';
+        }
+        if (t.ph !== undefined) document.getElementById('card-ph').textContent = t.ph;
+        if (t.moisture !== undefined) document.getElementById('card-moist').textContent = t.moisture + ' %';
+        if (t.canopy_temp !== undefined) document.getElementById('card-canopy').textContent = t.canopy_temp + ' °C';
+
+        if (a.nitrate !== undefined) document.getElementById('strip-nitrate').textContent = a.nitrate + ' ppm';
+        if (a.phosphate !== undefined) document.getElementById('strip-phosphate').textContent = a.phosphate + ' ppm';
+        if (a.zinc !== undefined) document.getElementById('strip-zinc').textContent = a.zinc + ' ppm';
+      } catch (err) {
+        console.error("Telemetry fetch error:", err);
+      }
+    }async function fetchHistory() {
+      try {
+        const alertVal = document.getElementById('filter-alerts')?.value || 'all';
+        const limitVal = document.getElementById('filter-limit')?.value || '12';
+        let url = `/api/history?limit=${limitVal}`;
+        if (alertVal === 'alerts_only') url += '&has_alerts=true';
+        if (alertVal === 'normal') url += '&has_alerts=false';
+
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const raw = await res.json();
+const d = raw.latest || raw;
+        const logs = d.history || [];
+
+        // Update Table
+        const tbody = document.getElementById('history-tbody');
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="py-3 px-2 text-center text-slate-500">No telemetry entries found for this filter.</td></tr>';
+        } else {
+          tbody.innerHTML = logs.map(r => {
+            const hasAlert = r.alerts && r.alerts !== 'None' && r.alerts.trim() !== '';
+            const alertHtml = hasAlert 
+              ? `<span class="text-amber-300 font-medium">${r.alerts}</span>` 
+              : `<span class="text-slate-500">None</span>`;
+            return `
+              <tr class="hover:bg-slate-700/40">
+                <td class="py-2 px-2">${r.timestamp ? r.timestamp.split(' ')[1] || r.timestamp : '--'}</td>
+                <td class="py-2 px-2 text-slate-400">${r.crop_profile || 'group1'}</td>
+                <td class="py-2 px-2 font-mono">${r.nitrogen}/${r.phosphorus}/${r.potassium}</td>
+                <td class="py-2 px-2 font-mono">${r.ph}</td>
+                <td class="py-2 px-2 font-mono">${r.moisture}%</td>
+                <td class="py-2 px-2 font-mono">${r.canopy_temp}°C</td>
+                <td class="py-2 px-2 text-[11px]">${alertHtml}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // Update Charts (sorted chronologically)
+        const chronLogs = [...logs].reverse();
+        const times = chronLogs.map(r => r.timestamp ? (r.timestamp.split(' ')[1] || r.timestamp) : '');
+        
+        npkChart.data.labels = times;
+        npkChart.data.datasets[0].data = chronLogs.map(r => r.nitrogen);
+        npkChart.data.datasets[1].data = chronLogs.map(r => r.phosphorus);
+        npkChart.data.datasets[2].data = chronLogs.map(r => r.potassium);
+        npkChart.update('none');
+
+        phMoistChart.data.labels = times;
+        phMoistChart.data.datasets[0].data = chronLogs.map(r => r.ph);
+        phMoistChart.data.datasets[1].data = chronLogs.map(r => r.moisture);
+        phMoistChart.update('none');
+
+      } catch (err) {
+        console.error("History fetch error:", err);
+      }
+    }
+
+    function exportFilteredCsv() {
+      const alertVal = document.getElementById('filter-alerts')?.value || 'all';
+      const limitVal = document.getElementById('filter-limit')?.value || '12';
+      let url = `/api/export?limit=${limitVal}`;
+      if (alertVal === 'alerts_only') url += '&has_alerts=true';
+      if (alertVal === 'normal') url += '&has_alerts=false';
+      window.location.href = url;
+    }
+
+    // Polling Intervals
+    fetchLatest();
+    fetchHistory();
+    setInterval(fetchLatest, 3000);
+    setInterval(fetchHistory, 3000);
+  </script>
+</body>
+</html>
+
+
+

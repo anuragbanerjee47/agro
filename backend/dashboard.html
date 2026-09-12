@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AgriSafe | AgroNode v4.2</title>
+  <title>AgriSafe Enterprise Console</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -12,739 +12,597 @@
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .glass-modal { backdrop-filter: blur(12px); background-color: rgba(255, 255, 255, 0.8); }
+    .hidden-section { display: none !important; }
     .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-    .glass-modal { backdrop-filter: blur(8px); background-color: rgba(255, 255, 255, 0.8); }
-    .hidden-section { display: none !important; }
-    .nav-active { background-color: #047857 !important; color: white !important; }
+    .threat-slide-in { animation: slideIn 0.5s ease-out forwards; }
+    @keyframes slideIn {
+      from { transform: translate(-50%, -100%); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
   </style>
 </head>
-<body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex">
+<body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex flex-col">
 
-  <!-- Auth Modal -->
-  <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center glass-modal hidden">
+  <!-- 1. Auth Modal -->
+  <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center glass-modal hidden">
     <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full mx-4">
       <div class="text-center mb-6">
         <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">A</div>
-        <h2 class="text-2xl font-bold text-slate-800">Welcome to AgriSafe</h2>
-        <p class="text-sm text-slate-500 mt-2">Sign in to access your field intelligence</p>
+        <h2 class="text-2xl font-bold text-slate-800">AgroNode Enterprise Field Access</h2>
+        <p class="text-sm text-slate-500 mt-2">Secure authentication required for telemetry access</p>
       </div>
       <div class="space-y-4">
         <div class="space-y-3">
           <div>
-            <label class="text-xs font-semibold text-slate-400 uppercase ml-1">Farmer ID</label>
+            <label class="text-xs font-semibold text-slate-400 uppercase ml-1">Farmer ID / Phone</label>
             <input id="authId" type="text" placeholder="AGRO-FARMER-XXXX-2026" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
           </div>
           <div>
-            <label class="text-xs font-semibold text-slate-400 uppercase ml-1">Access Token (Optional)</label>
-            <input id="authToken" type="password" placeholder="••••••••" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+            <label class="text-xs font-semibold text-slate-400 uppercase ml-1">Password</label>
+            <input id="authPass" type="password" placeholder="••••••••" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
           </div>
         </div>
-        <button id="btnSignIn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-900/20">Enter Dashboard</button>
+        <button id="btnSignIn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-900/20">Sign In / Register</button>
         <div class="relative flex py-3 items-center">
           <div class="flex-grow border-t border-slate-200"></div>
           <span class="flex-shrink mx-4 text-slate-400 text-xs uppercase font-medium">or</span>
           <div class="flex-grow border-t border-slate-200"></div>
         </div>
-        <button id="btnPreview" class="w-full bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl border border-slate-300 transition-all">Platform Preview Mode</button>
+        <button id="btnPreview" class="w-full bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl border border-slate-300 transition-all">Platform Preview (Explore Live Data)</button>
       </div>
     </div>
   </div>
 
-  <!-- Threat Overlay -->
-  <div id="threatOverlay" class="fixed top-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg pointer-events-none hidden">
-    <div class="bg-white border-l-4 border-rose-600 shadow-2xl p-4 rounded-r-2xl flex items-center gap-4 transition-all duration-500 transform translate-y-[-100%] opacity-0">
-      <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center font-bold">!</div>
-      <div class="flex-1">
-        <h4 class="text-sm font-bold text-slate-800">Biological Threat Detected</h4>
-        <p id="threatMsg" class="text-xs text-slate-600">Acoustic stem probe detected suspected nematode activity</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sidebar Navigation -->
-  <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col">
-    <div class="p-6 flex items-center gap-3">
-      <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold">A</div>
-      <h2 class="text-lg font-bold text-white tracking-tight">AgriSafe <span class="text-slate-500 text-xs block">AgroNode v4.2</span></h2>
-    </div>
-    <div class="px-4 mb-8">
-      <div class="bg-slate-800/50 rounded-full px-3 py-1 flex items-center gap-2 w-fit">
-        <span class="w-2 h-2 bg-emerald-500 rounded-full pulse-green"></span>
-        <span class="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">99.8% Sync</span>
-      </div>
-    </div>
-    <nav class="flex-1 px-3 space-y-1">
-      <a href="#" onclick="switchSection('section-overview')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-700 text-white font-medium text-sm transition-all nav-active" data-section="section-overview">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2,2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-        Ecosystem Overview
-      </a>
-      <a href="#" onclick="switchSection('section-telemetry')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm" data-section="section-telemetry">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-        Field Telemetry & Scans
-      </a>
-      <a href="#" onclick="switchSection('section-network')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm" data-section="section-network">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        Collaborative Network
-      </a>
-      <a href="#" onclick="switchSection('section-history')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm" data-section="section-history">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-        Alert Records
-      </a>
-    </nav>
-    <div class="p-4 border-t border-slate-800 mt-auto">
-      <div id="userIdentity" class="flex items-center gap-3 p-2 bg-slate-800 rounded-lg overflow-hidden">
-        <div class="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-bold text-slate-400">?</div>
-        <div class="flex-1 min-w-0">
-          <p id="userName" class="text-[10px] font-bold text-white truncate">Guest Farmer</p>
-          <p id="userIdText" class="text-[9px] text-slate-500 truncate">No Session</p>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Main Content Area -->
-  <main class="flex-1 flex flex-col overflow-hidden">
-
-    <!-- Top Header Bar -->
-    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-4">
-        <div class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest border border-slate-200">
-          SECTOR 4-B ACTIVE SURVEILLANCE • NODE: <span id="nodeId" class="text-slate-900">ESP32_FIELD_NODE_01</span>
-        </div>
-        <h1 class="text-xl font-semibold text-slate-800">Ecosystem Intelligence Briefing</h1>
+  <!-- 2. Neighbours Modal -->
+  <div id="neighborModal" class="fixed inset-0 z-[90] flex items-center justify-center glass-modal hidden">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-slate-800">Neighbours Network</h2>
+        <button onclick="toggleNeighborModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
       </div>
 
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-3">
-          <label class="text-xs font-medium text-slate-500">Crop Profile:</label>
-          <select id="cropSelect" class="bg-white text-slate-800 text-sm rounded-full px-4 py-1.5 border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none font-medium transition-all">
-            <option value="group1">Group 1: Wetland</option>
-            <option value="group2">Group 2: Cool Rabi</option>
-            <option value="group3">Group 3: Arid Dryland</option>
-            <option value="group4">Group 4: Cash Crops</option>
-          </select>
-        </div>
-        <a id="exportCsvLink" href="/api/export" download class="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold py-2 px-4 rounded-full transition-all flex items-center gap-2 shadow-sm">
-          <span>Export Briefing / Filtered CSV</span>
-        </a>
-      </div>
-    </header>
-
-    <!-- Scrollable Body -->
-    <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-
-      <!-- Dynamic Alerts Banner -->
-      <section id="alertBox" class="space-y-2"></section>
-
-      <!-- SECTION: OVERVIEW -->
-      <div id="section-overview" class="space-y-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">NPK Soil Levels</p>
-            <div class="flex items-baseline gap-3">
-              <span id="valN" class="text-2xl font-bold text-slate-800">--</span>
-              <span class="text-xs font-medium text-slate-500">N mg/kg</span>
-            </div>
-            <div class="flex items-baseline gap-3 mt-1">
-              <span id="valP" class="text-lg font-medium text-slate-600">--</span>
-              <span class="text-xs font-medium text-slate-500">P mg/kg</span>
-            </div>
-            <div class="flex items-baseline gap-3 mt-1">
-              <span id="valK" class="text-lg font-medium text-slate-600">--</span>
-              <span class="text-xs font-medium text-slate-500">K mg/kg</span>
-            </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-6">
+          <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+            <p class="text-xs font-bold text-emerald-600 uppercase mb-2">My Sharing Code</p>
+            <div id="myShareCode" class="text-2xl font-mono font-bold text-emerald-800 tracking-widest">AGRO-NBR-XXXX</div>
           </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Soil pH & Acidity Status</p>
-            <div class="flex items-center justify-between">
-              <span id="valPH" class="text-3xl font-bold text-slate-800">--</span>
-              <span id="phTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
-            </div>
-            <p class="text-xs text-slate-500 mt-2">Current soil chemical stability</p>
-          </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Soil Moisture</p>
-            <div class="flex items-center justify-between">
-              <span id="valMoist" class="text-3xl font-bold text-slate-800">--%</span>
-              <span id="moistTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
-            </div>
-            <div class="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
-              <div id="moistBar" class="bg-sky-500 h-full transition-all duration-500" style="width: 0%"></div>
-            </div>
-          </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Canopy Thermal Risk</p>
-            <div class="flex items-center justify-between">
-              <span id="valTemp" class="text-3xl font-bold text-slate-800">--°C</span>
-              <span id="tempRiskTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
-            </div>
-            <p id="ambientTemp" class="text-xs text-slate-500 mt-2">Ambient: --°C</p>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="p-5 border-b border-slate-100 bg-slate-50/50">
-            <h3 class="text-sm font-bold text-slate-800">Interactive Remedy Engine</h3>
-          </div>
-          <div class="p-6 space-y-6">
-            <div id="remedyNutrientTabs" class="flex flex-wrap gap-2"></div>
-            <div id="remedyContent" class="hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div class="flex items-center gap-2 mb-4">
-                <span id="activeNutrientLabel" class="text-lg font-bold text-slate-800">Nutrient</span>
-                <span id="nutrientStatusTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border">Status</span>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div id="card-govt" class="p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:border-emerald-500 transition-all">
-                  <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Govt Available Additives</h4>
-                  <p id="remedyGovt" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
-                </div>
-                <div id="card-home" class="p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:border-emerald-500 transition-all">
-                  <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Homemade Remedy</h4>
-                  <p id="remedyHome" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
-                </div>
-                <div id="card-emergency" class="p-4 rounded-xl border border-rose-200 bg-rose-50 cursor-pointer hover:border-rose-500 transition-all">
-                  <h4 class="text-xs font-bold text-rose-600 uppercase mb-2">Emergency Action</h4>
-                  <p id="remedyEmergency" class="text-sm text-rose-700 leading-relaxed">Select a nutrient to see recommendations.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECTION: TELEMETRY -->
-      <div id="section-telemetry" class="hidden-section space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm col-span-1">
-            <div class="flex items-center justify-between mb-6">
-              <h3 class="text-sm font-bold text-slate-800">ESP32-CAM Colorimeter</h3>
-              <span class="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 uppercase tracking-wide">Edge Optical Ingestion Active</span>
-            </div>
-            <div class="space-y-4">
-              <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span class="text-xs font-medium text-slate-500">Nitrate</span>
-                <span id="optN" class="text-sm font-bold text-emerald-700">-- PPM</span>
-              </div>
-              <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span class="text-xs font-medium text-slate-500">Phosphate</span>
-                <span id="optP" class="text-sm font-bold text-amber-600">-- PPM</span>
-              </div>
-              <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span class="text-xs font-medium text-slate-500">Zinc (Zn)</span>
-                <span id="optZn" class="text-sm font-bold text-rose-600">-- PPM</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-72">
-              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Soil NPK Dynamics</h3>
-              <canvas id="npkChart"></canvas>
-            </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-72">
-              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">pH & Moisture Dynamics</h3>
-              <canvas id="phMoistChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECTION: NETWORK -->
-      <div id="section-network" class="hidden-section bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-          <h3 class="text-sm font-bold text-slate-800">Collaborative Intelligence (Neighbor Network)</h3>
-          <button id="btnMyCode" class="text-xs font-bold text-emerald-700 hover:text-emerald-800">My Share Code</button>
-        </div>
-        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div class="space-y-4">
-            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Connect with Neighbors</h4>
+          <div class="space-y-3">
+            <p class="text-xs font-bold text-slate-400 uppercase">Connect to Neighbor</p>
             <div class="flex gap-2">
-              <input id="neighborCodeInput" type="text" placeholder="Enter Neighbor Code" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-              <button id="btnConnect" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-900 transition-all">Request</button>
+              <input id="neighborCodeInput" type="text" placeholder="Enter Code" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500">
+              <button id="btnConnect" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-900">Request</button>
             </div>
-            <div id="connectionStatus" class="text-[11px] text-slate-500 italic"></div>
+            <div id="connStatus" class="text-[11px] text-slate-500 italic"></div>
           </div>
-          <div class="space-y-4">
-            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Invitations</h4>
-            <div id="neighborRequests" class="space-y-2">
+        </div>
+
+        <div class="space-y-6">
+          <div class="space-y-3">
+            <p class="text-xs font-bold text-slate-400 uppercase">Incoming Handshakes</p>
+            <div id="neighborQueue" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
               <p class="text-xs text-slate-400 italic">No pending requests.</p>
             </div>
           </div>
-        </div>
-        <div class="p-6 bg-slate-50 border-t border-slate-100">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Neighbor Alert Stream (Scoped)</h4>
-          <div id="neighborAlerts" class="space-y-3">
-            <p class="text-xs text-slate-400 italic">No critical alerts from neighbors.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECTION: HISTORY -->
-      <div id="section-history" class="hidden-section bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
-          <h3 class="text-sm font-bold text-slate-800">Recent Activity & Field Scans</h3>
-          <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-              <label class="text-[11px] font-semibold text-slate-400 uppercase">Alerts:</label>
-              <select id="filterAlerts" class="bg-white text-slate-700 text-xs rounded-md px-2 py-1 border border-slate-300 outline-none focus:ring-1 focus:ring-emerald-500">
-                <option value="all">All</option>
-                <option value="true">Only Alerts</option>
-                <option value="false">Normal</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-2">
-              <label class="text-[11px] font-semibold text-slate-400 uppercase">Limit:</label>
-              <select id="filterLimit" class="bg-white text-slate-700 text-xs rounded-md px-2 py-1 border border-slate-300 outline-none focus:ring-1 focus:ring-emerald-500">
-                <option value="10">10</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-              </select>
+          <div class="space-y-3">
+            <p class="text-xs font-bold text-slate-400 uppercase">Connected Neighbors (Alerts Only)</p>
+            <div id="neighborFeed" class="space-y-2">
+              <p class="text-xs text-slate-400 italic">No active neighbor alerts.</p>
             </div>
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
-              <tr>
-                <th class="px-6 py-3">Timestamp</th>
-                <th class="px-6 py-3">Crop Profile</th>
-                <th class="px-6 py-3">NPK (mg/kg)</th>
-                <th class="px-6 py-3">pH</th>
-                <th class="px-6 py-3">Diagnostic Status</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody" class="divide-y divide-slate-100"></tbody>
-          </table>
-        </div>
       </div>
-
     </div>
+  </div>
+
+  <!-- 3. Threat Overlay -->
+  <div id="threatOverlay" class="fixed top-6 left-1/2 -translate-x-1/2 z-[110] w-full max-w-lg pointer-events-none hidden">
+    <div id="threatBanner" class="bg-white border-l-4 border-rose-600 shadow-2xl p-4 rounded-r-2xl flex items-center gap-4">
+      <div class="flex-1">
+        <h4 class="text-sm font-bold text-slate-800">Biological Threat Alert</h4>
+        <p id="threatMsg" class="text-xs text-slate-600">Acoustic Probe / Spectral Shift: Suspected Nematode & Stem Stress Detected in Sector 4</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0 z-10">
+    <div class="flex items-center gap-4">
+      <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
+      <h1 class="text-lg font-bold text-slate-800 tracking-tight">AgriSafe Enterprise Console</h1>
+    </div>
+
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3">
+        <label class="text-xs font-medium text-slate-500">Crop Group:</label>
+        <select id="cropSelect" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
+          <option value="group1">Group 1: Wetland [Rice, Sugarcane]</option>
+          <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
+          <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
+          <option value="group4">Group 4: Cash Crops</option>
+        </select>
+      </div>
+
+      <button onclick="toggleNeighborModal(true)" class="text-xs font-bold text-slate-600 hover:text-emerald-700 flex items-center gap-2 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354 a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        Neighbours Network
+      </button>
+
+      <div class="flex items-center gap-3 pl-6 border-l border-slate-200">
+        <div class="text-right">
+          <p id="topFarmerId" class="text-xs font-bold text-slate-800">AGRO-FARMER-XXXX-2026</p>
+          <p id="sessionPill" class="text-[10px] text-emerald-600 font-medium">Verified Device</p>
+        </div>
+        <div class="w-8 h-8 bg-slate-200 rounded-full border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-500">F</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-[#f8fafc]">
+
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- NPK Card -->
+      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Soil NPK Levels</p>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-medium text-slate-500">Nitrogen (N)</span>
+            <span id="valN" class="text-xl font-bold text-slate-800">-- mg/kg</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-medium text-slate-500">Phosphorus (P)</span>
+            <span id="valP" class="text-xl font-bold text-slate-800">-- mg/kg</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-medium text-slate-500">Potassium (K)</span>
+            <span id="valK" class="text-xl font-bold text-slate-800">-- mg/kg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- pH Card -->
+      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Soil Chemical Index</p>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-slate-500">Soil pH</span>
+          <span id="valPH" class="text-3xl font-bold text-slate-800">--</span>
+        </div>
+        <div id="phTag" class="text-center py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border">--</div>
+      </div>
+
+      <!-- Moisture Card -->
+      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Hydration Status</p>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-sm font-medium text-slate-500">Soil Moisture</span>
+          <span id="valMoist" class="text-3xl font-bold text-slate-800">--%</span>
+        </div>
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div id="moistBar" class="bg-sky-500 h-full transition-all duration-700" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Micronutrient Quick-Strip -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">Live Micronutrient Analysis (PPM)</p>
+      <div class="grid grid-cols-4 md:grid-cols-8 gap-4">
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">Zn</p>
+          <p id="micZn" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">Fe</p>
+          <p id="micFe" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">B</p>
+          <p id="micB" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">Mn</p>
+          <p id="micMn" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">Cu</p>
+          <p id="micCu" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">Mo</p>
+          <p id="micMo" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">Cl</p>
+          <p id="micCl" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+          <p class="text-[10px] font-medium text-slate-500">Ni</p>
+          <p id="micNi" class="text-sm font-bold text-slate-800">--</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-96">
+        <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+          Soil NPK Dynamics
+        </h3>
+        <div class="h-72"><canvas id="npkChart"></canvas></div>
+      </div>
+      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-96">
+        <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <span class="w-2 h-2 bg-sky-500 rounded-full"></span>
+          pH & Moisture Dynamics
+        </h3>
+        <div class="h-72"><canvas id="phMoistChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Remedy Engine -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+        <h3 class="text-lg font-bold text-slate-800">Interactive Remedy Engine</h3>
+        <p class="text-xs text-slate-500">Precision agronomic prescriptions based on live telemetry</p>
+      </div>
+      <div class="p-6 space-y-8">
+        <!-- Tier 1: Nutrients -->
+        <div id="remedyNutrientTabs" class="flex flex-wrap gap-2 justify-center">
+          <!-- Injected by JS -->
+        </div>
+
+        <!-- Tier 2: Remedy Type -->
+        <div id="remedyTypeNav" class="flex justify-center gap-3 hidden">
+          <button onclick="selectRemedyType('Govt')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">🏛️ Govt Available Additives</button>
+          <button onclick="selectRemedyType('Home')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">🏡 Homemade Remedy</button>
+          <button onclick="selectRemedyType('Emergency')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">⚡ Emergency Action</button>
+        </div>
+
+        <!-- Remedy Content -->
+        <div id="remedyContent" class="hidden max-w-3xl mx-auto">
+          <div class="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl relative">
+            <div id="remedyCategoryTag" class="absolute -top-3 left-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-600 text-white">Govt</div>
+            <h4 id="activeNutrientTitle" class="text-xl font-bold text-emerald-900 mb-3">Nitrogen (N)</h4>
+            <p id="remedyText" class="text-sm text-emerald-800 leading-relaxed"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+        <h3 class="text-sm font-bold text-slate-800">Recent Field Scans</h3>
+        <a id="exportCsvLink" href="/api/export" download class="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline">Export CSV</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
+            <tr>
+              <th class="px-6 py-4">Timestamp</th>
+              <th class="px-6 py-4">Profile</th>
+              <th class="px-6 py-4">NPK (mg/kg)</th>
+              <th class="px-6 py-4">pH</th>
+              <th class="px-6 py-4">Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
   <script>
+    // --- State & Data ---
     let npkChart, phMoistChart;
-    let remedyDatabase = {};
-    let sessionToken = null;
-    let currentFarmerId = null;
+    let sessionToken = localStorage.getItem('agronode_auth_token');
+    let currentFarmerId = localStorage.getItem('agronode_farmer_id');
+    let activeNutrient = null;
+    let activeRemedyType = 'Govt';
 
-    // DOM Helper
-    function setElementText(id, text) {
+    const REMEDY_DATA = {
+      "Nitrogen": { "Govt": "Urea (46% N, ~₹266/45kg at PACS/RSK/IFFCO); Nano Urea Liquid (500 mL, ~₹225-240)", "Home": "Jeevamrut (10 kg cow dung, 10 L cow urine, 2 kg jaggery, 2 kg pulse flour in 200 L water; ferment 48-72 hrs in shade)", "Emergency": "Foliar spray 2% conventional Urea solution (2 kg in 100 L water/acre)" },
+      "Phosphorus": { "Govt": "DAP (18:46:0, ~₹1,350/50kg); SSP (16% P2O5, ~₹350-400/50kg); Nano DAP (500 mL, ~₹600)", "Home": "Bone Meal / Charred Bone Dust (20-30% P2O5; apply 20-25 kg/acre near root zone)", "Emergency": "Foliar spray 1% MAP (12:61:0; 1 kg in 100 L water/acre) or 2-4 mL Nano DAP/L water" },
+      "Potassium": { "Govt": "MOP (Muriate of Potash, 60% K2O; 20-30 kg/acre); 0:0:50 Potassium Sulfate (~₹100-150/kg)", "Home": "Wood/Chulha Ash (10-15 kg/acre before irrigation) or Banana Peel Extract (15-20 peels steeped in 10 L water for 3 days)", "Emergency": "Foliar spray 1% 13:0:45 (Potassium Nitrate; 1 kg in 100 L water/acre) or Ash Water decanted spray" },
+      "Calcium": { "Govt": "Gypsum (CaSO4·2H2O; 100-200 kg/acre, ~₹100-200/50kg); Calcium Nitrate (1 kg, ~₹120-180)", "Home": "Edible Slaked Lime / Chuna (1 kg in 10 L water overnight, diluted into 200 L); Eggshell Powder (2-3 kg/acre)", "Emergency": "Foliar spray 0.5% Calcium Nitrate (500 g in 100 L water/acre) or Vinegar-Eggshell extract" },
+      "Magnesium": { "Govt": "Magnesium Sulfate / Epsom Salt (10-15 kg/acre, ~₹30-50/kg); Dolomite Limestone Dust (20-25 kg/acre)", "Home": "Household Epsom Salt drench (2 kg in 100 L water/acre around root zone)", "Emergency": "Foliar spray 1% Magnesium Sulfate (1 kg in 100 L water/acre) or Epsom (500 g) + Urea (500 g) in 100 L water" },
+      "Sulfur": { "Govt": "Elemental Sulfur (80%/90% WDG; 10-15 kg/acre, ~₹80-120/kg); SSP (11% S; 50-75 kg/acre)", "Home": "Onion & Garlic Waste Extract (5 kg peels steeped in 20 L water for 4 days) or Mustard Cake (Sarson Ki Khali; 10 kg in 50 L water)", "Emergency": "Foliar spray 0.5% Liquid Sulfur (40%/80% SC) or Ammonium Sulfate (500 g in 100 L water)" },
+      "Zinc": { "Govt": "Zinc Sulfate Heptahydrate 21% (10-12 kg/acre, ~₹50-70/kg); Zinc Sulfate Monohydrate 33% (6-8 kg/acre); Zinc EDTA 12%", "Home": "Galvanized iron scrap soak in 20 L water with 1 L sour buttermilk (10-14 days) or Compost-enriched Zinc dust (2 kg in 50 kg FYM)", "Emergency": "Foliar spray 500 g Zinc Sulfate (21%) + 250 g Lime in 100 L water/acre, or 100-150 g Zinc EDTA in 100 L water" },
+      "Iron": { "Govt": "Ferrous Sulfate (FeSO4 19%; ~₹30-50/kg); Chelated Iron (Fe-EDTA 12% / Fe-EDDHA 6% for alkaline soils, ~₹150-300)", "Home": "Iron scrap + Jaggery water (2-3 kg rusted iron in 10 L water with 1 kg Jaggery for 10-14 days) or Sour Buttermilk iron extract", "Emergency": "Foliar spray 1 kg FeSO4 + 100 g Citric Acid in 100 L water/acre, or 100-150 g Fe-EDTA in 100 L water" },
+      "Boron": { "Govt": "Borax 10.5% (2-3 kg/acre, ~₹80-120/kg); Solubor / Disodium Octaborate Tetrahydrate 20% (~₹150-250)", "Home": "Wood Ash (15-20 kg) + Cow Dung Compost (100 kg) or Household Borax powder (1 kg in 50 kg compost)", "Emergency": "Foliar spray 0.2% Solubor/Borax (200 g in 100 L water/acre) or Borax (150 g) + Jaggery (200 g) in 100 L water" },
+      "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA in 100 L water" },
+      "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented buttermilk (5 L sour buttermilk with copper scrap for 10-14 days) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
+      "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg) or Agricultural Lime (100-150 kg/acre to unlock native Mo)", "Emergency": "Foliar spray 0.03%-0.05% Sodium Molybdate (30-50 g in 100 L water/acre) or Ash Water + Jaggery extract spray" },
+      "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g in 100 L water/acre) or deep well irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
+      "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
+    };
+
+    // Helper for Safe DOM
+    function safeSetText(id, text) {
       const el = document.getElementById(id);
       if (el) el.innerText = text;
     }
 
-    function setElementClass(id, className, action = 'add') {
+    function safeSetClass(id, className, action = 'add') {
       const el = document.getElementById(id);
-      if (el) {
-        if (action === 'add') el.classList.add(className);
-        else if (action === 'remove') el.classList.remove(className);
-        else el.className = className;
+      if (!el) return;
+      if (action === 'add') el.classList.add(className);
+      else if (action === 'remove') el.classList.remove(className);
+      else el.className = className;
+    }
+
+    // --- Auth & Modals ---
+    function checkAuth() {
+      if (!sessionToken) {
+        document.getElementById('authModal').classList.remove('hidden');
+      } else {
+        document.getElementById('authModal').classList.add('hidden');
+        updateProfileUI();
       }
     }
 
-    function switchSection(sectionId) {
-      console.log(`Switching to section: ${sectionId}`);
-      const sections = ['section-overview', 'section-telemetry', 'section-network', 'section-history'];
-      sections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden-section');
-      });
-      const target = document.getElementById(sectionId);
-      if (target) target.classList.remove('hidden-section');
+    function updateProfileUI() {
+      safeSetText('topFarmerId', currentFarmerId || 'AGRO-FARMER-XXXX-2026');
+      safeSetText('sessionPill', sessionToken === 'preview-mode' ? 'Platform Preview' : 'Verified Device');
+    }
 
-      document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('nav-active', 'bg-emerald-700', 'text-white');
-        link.classList.add('text-slate-400');
-        if (link.getAttribute('data-section') === sectionId) {
-          link.classList.add('nav-active');
+    function toggleNeighborModal(show) {
+      const modal = document.getElementById('neighborModal');
+      if (modal) {
+        show ? modal.classList.remove('hidden') : modal.classList.add('hidden');
+      }
+    }
+
+    async function handleSignIn() {
+      const id = document.getElementById('authId').value;
+      const pass = document.getElementById('authPass').value;
+      const body = new FormData();
+      body.append('farmer_id', id);
+      body.append('token', pass);
+
+      try {
+        const res = await fetch('/api/auth/signin', { method: 'POST', body });
+        const data = await res.json();
+        if (data.status === 'success' || data.status === 'registered') {
+          sessionToken = data.token;
+          currentFarmerId = data.farmer_id || (data.user ? data.user.farmer_id : 'Unknown');
+          localStorage.setItem('agronode_auth_token', sessionToken);
+          localStorage.setItem('agronode_farmer_id', currentFarmerId);
+          document.getElementById('authModal').classList.add('hidden');
+          updateProfileUI();
+          updateDashboard();
+        } else {
+          alert("Auth failed: " + (data.detail || "Invalid credentials"));
         }
-      });
+      } catch (e) { alert("Connection Error"); }
     }
 
-    function initCharts() {
-      const commonOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#64748b', font: { size: 11, weight: '500' } } },
-          tooltip: { backgroundColor: '#1e293b', titleColor: '#f1f5f9', bodyColor: '#f1f5f9', borderColor: '#334155', borderWidth: 1 }
-        },
-        scales: {
-          x: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-          y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
-        }
-      };
-
-      const ctxNpk = document.getElementById('npkChart');
-      if (ctxNpk) {
-        npkChart = new Chart(ctxNpk.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: [],
-            datasets: [
-              { label: 'N', borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
-              { label: 'P', borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
-              { label: 'K', borderColor: '#7c3aed', backgroundColor: 'rgba(124, 58, 237, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
-            ]
-          },
-          options: commonOptions
-        });
-      }
-
-      const ctxPh = document.getElementById('phMoistChart');
-      if (ctxPh) {
-        phMoistChart = new Chart(ctxPh.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: [],
-            datasets: [
-              { label: 'pH', borderColor: '#0ea5e9', data: [], tension: 0.35, yAxisID: 'y', pointRadius: 2 },
-              { label: 'Moisture %', borderColor: '#06b6d4', data: [], tension: 0.35, yAxisID: 'y1', pointRadius: 2 },
-            ]
-          },
-          options: {
-            ...commonOptions,
-            scales: {
-              x: commonOptions.scales.x,
-              y: { ...commonOptions.scales.y, min: 0, max: 14, title: { display: true, text: 'pH', color: '#64748b' } },
-              y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: '#64748b' }, title: { display: true, text: 'Moisture %', color: '#64748b' } }
-            }
-          }
-        });
-      }
+    function enterPreview() {
+      sessionToken = "preview-mode";
+      currentFarmerId = "AGRO-PREVIEW-2026";
+      localStorage.setItem('agronode_auth_token', sessionToken);
+      localStorage.setItem('agronode_farmer_id', currentFarmerId);
+      document.getElementById('authModal').classList.add('hidden');
+      updateProfileUI();
+      updateDashboard();
     }
 
-    function getFilterParams() {
-      const alertEl = document.getElementById('filterAlerts');
-      const limitEl = document.getElementById('filterLimit');
-      const alerts = alertEl ? alertEl.value : 'all';
-      const limit = limitEl ? limitEl.value : '25';
-      const params = new URLSearchParams();
-      if (alerts !== 'all') params.append('has_alerts', alerts);
-      params.append('limit', limit);
-      return params.toString();
-    }
-
-    function updateExportLink() {
-      const params = getFilterParams();
-      const link = document.getElementById('exportCsvLink');
-      if (link) link.href = `/api/export?${params}`;
-    }
-
-    function getPHCondition(ph) {
-      if (ph < 6.0) return { text: 'Acidic', class: 'bg-rose-50 text-rose-700 border-rose-200' };
-      if (ph <= 7.5) return { text: 'Optimal', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-      return { text: 'Alkaline', class: 'bg-sky-50 text-sky-700 border-sky-200' };
-    }
-
-    function triggerThreatOverlay(msg) {
+    // --- Threat System ---
+    function triggerThreat(msg) {
       const overlay = document.getElementById('threatOverlay');
-      if (!overlay) return;
-      const inner = overlay.firstElementChild;
-      setElementText('threatMsg', msg);
+      const banner = document.getElementById('threatBanner');
+      if (!overlay || !banner) return;
+
+      safeSetText('threatMsg', msg);
       overlay.classList.remove('hidden');
+      banner.classList.add('threat-slide-in');
+
       setTimeout(() => {
-        if (inner) inner.classList.remove('translate-y-[-100%]', 'opacity-0');
-      }, 10);
-      setTimeout(() => {
-        if (inner) inner.classList.add('translate-y-[-100%]', 'opacity-0');
-        setTimeout(() => overlay.classList.add('hidden'), 500);
+        banner.classList.remove('threat-slide-in');
+        overlay.classList.add('hidden');
       }, 10000);
     }
 
-    async function updateDashboard() {
-      try {
-        const res = await fetch('/api/dashboard');
-        if (!res.ok) throw new Error(`API Error: ${res.status}`);
-        const data = await res.json();
+    // --- Remedy Engine ---
+    function initRemedyEngine() {
+      const tabsContainer = document.getElementById('remedyNutrientTabs');
+      if (!tabsContainer) return;
 
-        const cropSel = document.getElementById('cropSelect');
-        if (cropSel) cropSel.value = data.active_profile;
-
-        const reading = data.latest_reading || {};
-        const telemetry = reading.telemetry || {};
-        const alerts = reading.alerts || [];
-
-        // Update Metrics
-        setElementText('valN', Math.round(telemetry.nitrogen || 0));
-        setElementText('valP', Math.round(telemetry.phosphorus || 0));
-        setElementText('valK', Math.round(telemetry.potassium || 0));
-
-        const ph = telemetry.ph ?? 7.0;
-        setElementText('valPH', ph);
-        const phCond = getPHCondition(ph);
-        const phTag = document.getElementById('phTag');
-        if (phTag) {
-          phTag.innerText = phCond.text;
-          phTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${phCond.class}`;
-        }
-
-        const moisture = telemetry.moisture ?? 0;
-        setElementText('valMoist', `${moisture}%`);
-        const moistBar = document.getElementById('moistBar');
-        if (moistBar) moistBar.style.width = `${moisture}%`;
-        const moistTag = document.getElementById('moistTag');
-        if (moistTag) {
-          moistTag.innerText = moisture > 30 ? 'Healthy' : 'Dry';
-          moistTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${moisture > 30 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`;
-        }
-
-        const temp = telemetry.canopy_temp ?? 0;
-        setElementText('valTemp', `${temp}°C`);
-        setElementText('ambientTemp', `Ambient: ${telemetry.ambient_temp ?? '--'}°C`);
-        const riskTag = document.getElementById('tempRiskTag');
-        if (riskTag) {
-          const isRisk = alerts.some(a => a.toLowerCase().includes('vascular') || a.toLowerCase().includes('critical'));
-          riskTag.innerText = isRisk ? 'High Risk' : 'Normal';
-          riskTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${isRisk ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`;
-        }
-
-        const bioThreat = alerts.find(a => a.toLowerCase().includes('bio-threat'));
-        if (bioThreat) triggerThreatOverlay(bioThreat);
-
-        const alertBox = document.getElementById('alertBox');
-        if (alertBox) {
-          alertBox.innerHTML = alerts.map(a => `
-            <div class="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-sm font-medium flex items-center gap-3 animate-pulse">
-              <span class="bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">!</span>
-              <span>${a}</span>
-            </div>
-          `).join('');
-        }
-
-        const params = getFilterParams();
-        const histRes = await fetch(`/api/history?${params}`);
-        if (histRes.ok) {
-          const histData = await histRes.json();
-          const history = histData.history || [];
-          const chronological = [...history].reverse();
-          const labels = chronological.map(r => r.timestamp ? r.timestamp.split('T')[1].substring(0, 8) : 'N/A');
-
-          if (npkChart) {
-            npkChart.data.labels = labels;
-            npkChart.data.datasets[0].data = chronological.map(r => r.nitrogen || 0);
-            npkChart.data.datasets[1].data = chronological.map(r => r.phosphorus || 0);
-            npkChart.data.datasets[2].data = chronological.map(r => r.potassium || 0);
-            npkChart.update('none');
-          }
-          if (phMoistChart) {
-            phMoistChart.data.labels = labels;
-            phMoistChart.data.datasets[0].data = chronological.map(r => r.ph || 0);
-            phMoistChart.data.datasets[1].data = chronological.map(r => r.moisture || 0);
-            phMoistChart.update('none');
-          }
-          const tableData = history.slice(0, 10);
-          const historyBody = document.getElementById('historyBody');
-          if (historyBody) {
-            historyBody.innerHTML = tableData.map(row => `
-              <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-4 font-mono text-slate-400">${row.timestamp ? row.timestamp.split('T')[1].substring(0, 8) : 'N/A'}</td>
-                <td class="px-6 py-4 font-medium text-slate-700">${row.crop_profile || 'Unknown'}</td>
-                <td class="px-6 py-4 text-slate-600">${Math.round(row.nitrogen || 0)},${Math.round(row.phosphorus || 0)},${Math.round(row.potassium || 0)}</td>
-                <td class="px-6 py-4 font-medium text-slate-800">${row.ph || '--'}</td>
-                <td class="px-6 py-4">
-                  ${row.alerts ? `<span class="bg-rose-100 text-rose-800 border border-rose-200 font-medium px-2 py-0.5 rounded text-[10px]">${row.alerts}</span>` : `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded text-[10px]">None</span>`}
-                </td>
-              </tr>
-            `).join('');
-          }
-        }
-        updateExportLink();
-        updateNeighborIntel();
-      } catch (err) {
-        console.error("Dashboard update failed:", err);
-      }
-    }
-
-    async function updateNeighborIntel() {
-      if (!sessionToken) return;
-      try {
-        const reqRes = await fetch(`/api/neighbors/requests?token=${sessionToken}`);
-        const reqData = await reqRes.json();
-        const reqContainer = document.getElementById('neighborRequests');
-        if (reqContainer) {
-          if (reqData.requests && reqData.requests.length > 0) {
-            reqContainer.innerHTML = reqData.requests.map(r => `
-              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
-                <span class="text-xs font-medium text-slate-600">${r.farmer_id}</span>
-                <div class="flex gap-1">
-                  <button onclick="approveNeighbor(${r.id}, 'accept')" class="bg-emerald-600 text-white text-[10px] px-2 py-1 rounded font-bold">Accept</button>
-                  <button onclick="approveNeighbor(${r.id}, 'reject')" class="bg-slate-400 text-white text-[10px] px-2 py-1 rounded font-bold">Reject</button>
-                </div>
-              </div>
-            `).join('');
-          } else {
-            reqContainer.innerHTML = '<p class="text-xs text-slate-400 italic">No pending requests.</p>';
-          }
-        }
-
-        const altRes = await fetch(`/api/neighbors/alerts?token=${sessionToken}`);
-        const altData = await altRes.json();
-        const altContainer = document.getElementById('neighborAlerts');
-        if (altContainer) {
-          if (altData.alerts && altData.alerts.length > 0) {
-            altContainer.innerHTML = altData.alerts.map(a => `
-              <div class="p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3">
-                <span class="bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">!</span>
-                <div>
-                  <p class="text-xs font-bold text-rose-800">${a.device_id}</p>
-                  <p class="text-xs text-rose-700 leading-relaxed">${a.alerts}</p>
-                </div>
-              </div>
-            `).join('');
-          } else {
-            altContainer.innerHTML = '<p class="text-xs text-slate-400 italic">No critical alerts from neighbors.</p>';
-          }
-        }
-      } catch (e) {
-        console.error("Neighbor update failed", e);
-      }
-    }
-
-    async function approveNeighbor(id, action) {
-      try {
-        await fetch(`/api/neighbors/approve?token=${sessionToken}&request_id=${id}&action=${action}`, { method: 'POST' });
-        updateNeighborIntel();
-      } catch (e) { alert("Error approving connection"); }
-    }
-
-    async function connectNeighbor() {
-      const codeInput = document.getElementById('neighborCodeInput');
-      const code = codeInput ? codeInput.value : '';
-      if (!code) return;
-      try {
-        const res = await fetch(`/api/neighbors/request?token=${sessionToken}&code=${code}`, { method: 'POST' });
-        const statusEl = document.getElementById('connectionStatus');
-        if (res.ok) {
-          if (statusEl) statusEl.innerText = "Request sent successfully!";
-          if (codeInput) codeInput.value = "";
-          updateNeighborIntel();
-        } else {
-          const err = await res.json();
-          if (statusEl) statusEl.innerText = "Error: " + (err.detail || "Unknown error");
-        }
-      } catch (e) { alert("Connection error"); }
-    }
-
-    async function showMyCode() {
-      if (!sessionToken) return;
-      try {
-        const res = await fetch(`/api/neighbors/code?token=${sessionToken}`);
-        const data = await res.json();
-        alert("Your Neighbor Share Code: " + data.code + "\nShare this with fellow farmers to collaborate.");
-      } catch (e) { alert("Error fetching code"); }
-    }
-
-    async function loadRemedies() {
-      try {
-        const res = await fetch('/api/remedies');
-        remedyDatabase = await res.json();
-        renderRemedyTabs();
-      } catch (e) { console.error("Failed to load remedies", e); }
-    }
-
-    function renderRemedyTabs() {
-      const container = document.getElementById('remedyNutrientTabs');
-      if (!container) return;
-      const nutrients = Object.keys(remedyDatabase);
-      container.innerHTML = nutrients.map(n => `
-        <button onclick="selectNutrient('${n}')" class="nutrient-chip px-3 py-1 rounded-full text-xs font-medium border border-slate-300 bg-white text-slate-600 hover:bg-emerald-50 transition-all">
+      const nutrients = Object.keys(REMEDY_DATA);
+      tabsContainer.innerHTML = nutrients.map(n => `
+        <button onclick="selectNutrient('${n}')" class="nutrient-tab px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 transition-all" data-nut="${n}">
           ${n}
         </button>
       `).join('');
     }
 
     function selectNutrient(n) {
-      const data = remedyDatabase[n];
-      if (!data) return;
-      const content = document.getElementById('remedyContent');
-      if (content) content.classList.remove('hidden');
-      setElementText('activeNutrientLabel', n);
-      setElementText('remedyGovt', data['Govt Available Additives']);
-      setElementText('remedyHome', data['Homemade Remedy']);
-      setElementText('remedyEmergency', data['Emergency Action']);
+      activeNutrient = n;
+      document.getElementById('remedyTypeNav').classList.remove('hidden');
+      document.getElementById('remedyContent').classList.remove('hidden');
 
-      document.querySelectorAll('.nutrient-chip').forEach(el => {
-        el.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-600');
-        if (el.innerText === n) el.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600');
+      document.querySelectorAll('.nutrient-tab').forEach(btn => {
+        btn.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-600');
+        if (btn.getAttribute('data-nut') === n) {
+          btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600');
+        }
       });
+      updateRemedyDisplay();
     }
 
-    // Safe Event Binding
-    window.addEventListener('DOMContentLoaded', () => {
-      const cropSel = document.getElementById('cropSelect');
-      if (cropSel) {
-        cropSel.addEventListener('change', async (e) => {
-          try {
-            const val = e.target.value;
-            await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${encodeURIComponent(val)}`, { method: 'POST' });
-            updateDashboard();
-          } catch (err) { console.error("Error switching profile:", err); }
+    function selectRemedyType(type) {
+      activeRemedyType = type;
+      document.querySelectorAll('.type-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-700', 'text-white', 'border-emerald-700');
+        if (btn.innerText.includes(type === 'Govt' ? 'Govt' : type === 'Home' ? 'Homemade' : 'Emergency')) {
+          btn.classList.add('bg-emerald-700', 'text-white', 'border-emerald-700');
+        }
+      });
+      updateRemedyDisplay();
+    }
+
+    function updateRemedyDisplay() {
+      if (!activeNutrient) return;
+      const data = REMEDY_DATA[activeNutrient];
+      const typeMap = { "Govt": "Govt Available Additives", "Home": "Homemade Remedy", "Emergency": "Emergency Action" };
+
+      safeSetText('activeNutrientTitle', activeNutrient);
+      safeSetText('remedyCategoryTag', typeMap[activeRemedyType]);
+      safeSetText('remedyText', data[activeRemedyType]);
+    }
+
+    // --- Charts ---
+    function initCharts() {
+      const common = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#64748b', font: { size: 11 } } } },
+        scales: {
+          x: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } },
+          y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } }
+        }
+      };
+
+      const ctxN = document.getElementById('npkChart');
+      if (ctxN) {
+        npkChart = new Chart(ctxN, {
+          type: 'line',
+          data: { labels: [], datasets: [
+            { label: 'N', borderColor: '#059669', data: [], tension: 0.3 },
+            { label: 'P', borderColor: '#d97706', data: [], tension: 0.3 },
+            { label: 'K', borderColor: '#7c3aed', data: [], tension: 0.3 }
+          ]},
+          options: common
         });
       }
 
-      ['filterAlerts', 'filterLimit'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('change', updateDashboard);
-      });
+      const ctxPH = document.getElementById('phMoistChart');
+      if (ctxPH) {
+        phMoistChart = new Chart(ctxPH, {
+          type: 'line',
+          data: { labels: [], datasets: [
+            { label: 'pH', borderColor: '#0ea5e9', data: [], yAxisID: 'y' },
+            { label: 'Moisture %', borderColor: '#06b6d4', data: [], yAxisID: 'y1' }
+          ]},
+          options: {
+            ...common,
+            scales: {
+              ...common.scales,
+              y: { ...common.scales.y, min: 0, max: 14 },
+              y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } }
+            }
+          }
+        });
+      }
+    }
 
-      const btnSignIn = document.getElementById('btnSignIn');
-      if (btnSignIn) btnSignIn.onclick = handleAuth;
+    // --- Core Data Update ---
+    async function updateDashboard() {
+      try {
+        const res = await fetch('/api/dashboard');
+        if (!res.ok) throw new Error('API failure');
+        const data = await res.json();
 
-      const btnPreview = document.getElementById('btnPreview');
-      if (btnPreview) btnPreview.onclick = () => {
-        sessionToken = "preview-mode";
-        currentFarmerId = "AGRO-PREVIEW-2026";
-        const modal = document.getElementById('authModal');
-        if (modal) modal.classList.add('hidden');
-        updateUserUI();
+        const tel = data.latest_reading?.telemetry || {};
+        const alerts = data.latest_reading?.alerts || [];
+
+        // 1. Metrics - STRICT formatting
+        safeSetText('valN', `${(tel.nitrogen || 0).toFixed(1)} mg/kg`);
+        safeSetText('valP', `${(tel.phosphorus || 0).toFixed(1)} mg/kg`);
+        safeSetText('valK', `${(tel.potassium || 0).toFixed(1)} mg/kg`);
+
+        const ph = tel.ph || 7.0;
+        safeSetText('valPH', ph.toFixed(2));
+        const phTag = document.getElementById('phTag');
+        if (phTag) {
+          phTag.innerText = ph < 6.0 ? 'Acidic' : ph > 7.5 ? 'Alkaline' : 'Optimal';
+          phTag.className = `text-center py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${ph < 6.0 ? 'bg-rose-50 text-rose-700 border-rose-200' : ph > 7.5 ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`;
+        }
+
+        const moist = tel.moisture || 0;
+        safeSetText('valMoist', `${moist.toFixed(1)}%`);
+        const mBar = document.getElementById('moistBar');
+        if (mBar) mBar.style.width = `${moist}%`;
+
+        // 2. Micronutrient Strip
+        const mics = ['Zn', 'Fe', 'B', 'Mn', 'Cu', 'Mo', 'Cl', 'Ni'];
+        mics.forEach(m => {
+          const val = tel[m.toLowerCase()] || 0;
+          safeSetText(`mic${m}`, val.toFixed(2));
+        });
+
+        // 3. Threats
+        const bio = alerts.find(a => a.toLowerCase().includes('bio-threat'));
+        if (bio) triggerThreat(bio);
+
+        // 4. Charts & History
+        const histRes = await fetch('/api/history?limit=15');
+        if (histRes.ok) {
+          const hData = await histRes.json();
+          const history = hData.history || [];
+          const chron = [...history].reverse();
+          const labels = chron.map(r => r.timestamp ? r.timestamp.split('T')[1].substring(0, 8) : '--');
+
+          if (npkChart) {
+            npkChart.data.labels = labels;
+            npkChart.data.datasets[0].data = chron.map(r => r.nitrogen || 0);
+            npkChart.data.datasets[1].data = chron.map(r => r.phosphorus || 0);
+            npkChart.data.datasets[2].data = chron.map(r => r.potassium || 0);
+            npkChart.update('none');
+          }
+          if (phMoistChart) {
+            phMoistChart.data.labels = labels;
+            phMoistChart.data.datasets[0].data = chron.map(r => r.ph || 0);
+            phMoistChart.data.datasets[1].data = chron.map(r => r.moisture || 0);
+            phMoistChart.update('none');
+          }
+
+          const hBody = document.getElementById('historyBody');
+          if (hBody) {
+            hBody.innerHTML = history.slice(0, 10).map(row => `
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 font-mono text-slate-400">${row.timestamp ? row.timestamp.split('T')[1].substring(0, 8) : '--'}</td>
+                <td class="px-6 py-4 font-medium text-slate-700">${row.crop_profile || 'Unknown'}</td>
+                <td class="px-6 py-4 text-slate-600">${Math.round(row.nitrogen || 0)},${Math.round(row.phosphorus || 0)},${Math.round(row.potassium || 0)}</td>
+                <td class="px-6 py-4 font-medium text-slate-800">${(row.ph || 0).toFixed(2)}</td>
+                <td class="px-6 py-4">${row.alerts ? `<span class="bg-rose-100 text-rose-800 border border-rose-200 px-2 py-0.5 rounded text-[10px]">${row.alerts}</span>` : 'Stable'}</td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch (e) { console.error("Polling Error:", e); }
+    }
+
+    // --- Init ---
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      initCharts();
+      initRemedyEngine();
+
+      document.getElementById('btnSignIn').onclick = handleSignIn;
+      document.getElementById('btnPreview').onclick = enterPreview;
+      document.getElementById('btnConnect').onclick = async () => {
+        const code = document.getElementById('neighborCodeInput').value;
+        if (!code) return;
+        try {
+          const res = await fetch(`/api/neighbors/request?token=${sessionToken}&code=${code}`, { method: 'POST' });
+          document.getElementById('connStatus').innerText = res.ok ? "Request sent!" : "Error connecting";
+        } catch (e) { console.error(e); }
+      };
+
+      document.getElementById('cropSelect').onchange = async (e) => {
+        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST' });
         updateDashboard();
       };
 
-      const btnConnect = document.getElementById('btnConnect');
-      if (btnConnect) btnConnect.onclick = connectNeighbor;
-
-      const btnMyCode = document.getElementById('btnMyCode');
-      if (btnMyCode) btnMyCode.onclick = showMyCode;
-
-      initCharts();
-      loadRemedies();
       setInterval(updateDashboard, 5000);
       updateDashboard();
     });
-
-    function handleAuth() {
-      const idEl = document.getElementById('authId');
-      const tokenEl = document.getElementById('authToken');
-      if (!idEl || !tokenEl) return;
-      const id = idEl.value;
-      const token = tokenEl.value;
-      const body = new FormData();
-      body.append('farmer_id', id);
-      body.append('token', token);
-
-      fetch('/api/auth/signin', { method: 'POST', body })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'success' || data.status === 'registered') {
-            sessionToken = data.token;
-            currentFarmerId = data.farmer_id || (data.user ? data.user.farmer_id : 'Unknown');
-            const modal = document.getElementById('authModal');
-            if (modal) modal.classList.add('hidden');
-            updateUserUI();
-            updateDashboard();
-          } else {
-            alert("Authentication failed");
-          }
-        })
-        .catch(e => alert("Connection error"));
-    }
-
-    function updateUserUI() {
-      const name = currentFarmerId ? "Farmer " + currentFarmerId.split('-').pop() : "Guest Farmer";
-      setElementText('userName', name);
-      setElementText('userIdText', currentFarmerId || 'No Session');
-    }
   </script>
 </body>
 </html>

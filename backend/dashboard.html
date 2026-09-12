@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF, charset=UTF-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AgriSafe | AgroNode v4.2</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,6 +15,7 @@
     .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     .glass-modal { backdrop-filter: blur(8px); background-color: rgba(255, 255, 255, 0.8); }
+    .hidden-section { display: none; }
   </style>
 </head>
 <body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex">
@@ -28,9 +29,15 @@
         <p class="text-sm text-slate-500 mt-2">Sign in to access your field intelligence</p>
       </div>
       <div class="space-y-4">
-        <div>
-          <label class="text-xs font-semibold text-slate-400 uppercase ml-1">Farmer ID</label>
-          <input id="authId" type="text" placeholder="AGRO-FARMER-XXXX-2026" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase ml-1">Farmer ID</label>
+            <input id="authId" type="text" placeholder="AGRO-FARMER-XXXX-2026" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-400 uppercase ml-1">Access Token (Optional)</label>
+            <input id="authToken" type="password" placeholder="••••••••" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+          </div>
         </div>
         <button id="btnSignIn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-900/20">Enter Dashboard</button>
         <div class="relative flex py-3 items-center">
@@ -43,18 +50,18 @@
     </div>
   </div>
 
-  <!-- Threat Overlay (Hidden by default) -->
+  <!-- Threat Overlay -->
   <div id="threatOverlay" class="fixed top-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg pointer-events-none hidden">
     <div class="bg-white border-l-4 border-rose-600 shadow-2xl p-4 rounded-r-2xl flex items-center gap-4 transition-all duration-500 transform translate-y-[-100%] opacity-0">
       <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center font-bold">!</div>
-      <div>
+      <div class="flex-1">
         <h4 class="text-sm font-bold text-slate-800">Biological Threat Detected</h4>
         <p id="threatMsg" class="text-xs text-slate-600">Acoustic stem probe detected suspected nematode activity</p>
       </div>
     </div>
   </div>
 
-  <!-- Sidebar Navigation (Desktop) -->
+  <!-- Sidebar Navigation -->
   <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col">
     <div class="p-6 flex items-center gap-3">
       <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold">A</div>
@@ -67,26 +74,30 @@
       </div>
     </div>
     <nav class="flex-1 px-3 space-y-1">
-      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-700 text-white font-medium text-sm transition-all">
+      <a href="#" onclick="switchSection('section-overview')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-700 text-white font-medium text-sm transition-all" data-section="section-overview">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2,2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
         Ecosystem Overview
       </a>
-      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm">
+      <a href="#" onclick="switchSection('section-telemetry')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm" data-section="section-telemetry">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
         Field Telemetry & Scans
       </a>
-      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.//9a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
-        Colorimeter Optical
+      <a href="#" onclick="switchSection('section-network')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm" data-section="section-network">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Collaborative Network
       </a>
-      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm">
+      <a href="#" onclick="switchSection('section-history')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-all text-sm" data-section="section-history">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
         Alert Records
       </a>
     </nav>
     <div class="p-4 border-t border-slate-800 mt-auto">
-      <div class="bg-slate-800 p-3 rounded-lg text-xs text-slate-400 italic">
-        System uptime: 14d 2h 12m
+      <div id="userIdentity" class="flex items-center gap-3 p-2 bg-slate-800 rounded-lg overflow-hidden">
+        <div class="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-bold text-slate-400">?</div>
+        <div class="flex-1 min-w-0">
+          <p id="userName" class="text-[10px] font-bold text-white truncate">Guest Farmer</p>
+          <p id="userIdText" class="text-[9px] text-slate-500 truncate">No Session</p>
+        </div>
       </div>
     </div>
   </aside>
@@ -125,135 +136,152 @@
       <!-- Dynamic Alerts Banner -->
       <section id="alertBox" class="space-y-2"></section>
 
-      <!-- Top Summary Metrics -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- NPK Card -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">NPK Soil Levels</p>
-          <div class="flex items-baseline gap-3">
-            <span id="valN" class="text-2xl font-bold text-slate-800">--</span>
-            <span class="text-xs font-medium text-slate-500">N mg/kg</span>
+      <!-- SECTION: OVERVIEW -->
+      <div id="section-overview" class="space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">NPK Soil Levels</p>
+            <div class="flex items-baseline gap-3">
+              <span id="valN" class="text-2xl font-bold text-slate-800">--</span>
+              <span class="text-xs font-medium text-slate-500">N mg/kg</span>
+            </div>
+            <div class="flex items-baseline gap-3 mt-1">
+              <span id="valP" class="text-lg font-medium text-slate-600">--</span>
+              <span class="text-xs font-medium text-slate-500">P mg/kg</span>
+            </div>
+            <div class="flex items-baseline gap-3 mt-1">
+              <span id="valK" class="text-lg font-medium text-slate-600">--</span>
+              <span class="text-xs font-medium text-slate-500">K mg/kg</span>
+            </div>
           </div>
-          <div class="flex items-baseline gap-3 mt-1">
-            <span id="valP" class="text-lg font-medium text-slate-600">--</span>
-            <span class="text-xs font-medium text-slate-500">P mg/kg</span>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Soil pH & Acidity Status</p>
+            <div class="flex items-center justify-between">
+              <span id="valPH" class="text-3xl font-bold text-slate-800">--</span>
+              <span id="phTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Current soil chemical stability</p>
           </div>
-          <div class="flex items-baseline gap-3 mt-1">
-            <span id="valK" class="text-lg font-medium text-slate-600">--</span>
-            <span class="text-xs font-medium text-slate-500">K mg/kg</span>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Soil Moisture</p>
+            <div class="flex items-center justify-between">
+              <span id="valMoist" class="text-3xl font-bold text-slate-800">--%</span>
+              <span id="moistTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
+            </div>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
+              <div id="moistBar" class="bg-sky-500 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Canopy Thermal Risk</p>
+            <div class="flex items-center justify-between">
+              <span id="valTemp" class="text-3xl font-bold text-slate-800">--°C</span>
+              <span id="tempRiskTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
+            </div>
+            <p id="ambientTemp" class="text-xs text-slate-500 mt-2">Ambient: --°C</p>
           </div>
         </div>
 
-        <!-- pH Card -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Soil pH & Acidity Status</p>
-          <div class="flex items-center justify-between">
-            <span id="valPH" class="text-3xl font-bold text-slate-800">--</span>
-            <span id="phTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-sm font-bold text-slate-800">Interactive Remedy Engine</h3>
           </div>
-          <p class="text-xs text-slate-500 mt-2">Current soil chemical stability</p>
-        </div>
-
-        <!-- Moisture Card -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Soil Moisture</p>
-          <div class="flex items-center justify-between">
-            <span id="valMoist" class="text-3xl font-bold text-slate-800">--%</span>
-            <span id="moistTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
+          <div class="p-6 space-y-6">
+            <div id="remedyNutrientTabs" class="flex flex-wrap gap-2"></div>
+            <div id="remedyContent" class="hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div class="flex items-center gap-2 mb-4">
+                <span id="activeNutrientLabel" class="text-lg font-bold text-slate-800">Nutrient</span>
+                <span id="nutrientStatusTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border">Status</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Govt Available Additives</h4>
+                  <p id="remedyGovt" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
+                </div>
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Homemade Remedy</h4>
+                  <p id="remedyHome" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
+                </div>
+                <div class="p-4 rounded-xl border border-rose-200 bg-rose-50">
+                  <h4 class="text-xs font-bold text-rose-600 uppercase mb-2">Emergency Action</h4>
+                  <p id="remedyEmergency" class="text-sm text-rose-700 leading-relaxed">Select a nutrient to see recommendations.</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
-            <div id="moistBar" class="bg-sky-500 h-full transition-all duration-500" style="width: 0%"></div>
-          </div>
-        </div>
-
-        <!-- Canopy Temp Card -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Canopy Thermal Risk</p>
-          <div class="flex items-center justify-between">
-            <span id="valTemp", class="text-3xl font-bold text-slate-800">--°C</span>
-            <span id="tempRiskTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border">--</span>
-          </div>
-          <p id="ambientTemp" class="text-xs text-slate-500 mt-2">Ambient: --°C</p>
         </div>
       </div>
 
-      <!-- Optical & Analysis Section -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Colorimeter Detailed Card -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm col-span-1">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-sm font-bold text-slate-800">ESP32-CAM Colorimeter</h3>
-            <span class="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 uppercase tracking-wide">Edge Optical Ingestion Active</span>
+      <!-- SECTION: TELEMETRY -->
+      <div id="section-telemetry" class="hidden-section space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm col-span-1">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-sm font-bold text-slate-800">ESP32-CAM Colorimeter</h3>
+              <span class="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 uppercase tracking-wide">Edge Optical Ingestion Active</span>
+            </div>
+            <div class="space-y-4">
+              <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <span class="text-xs font-medium text-slate-500">Nitrate</span>
+                <span id="optN" class="text-sm font-bold text-emerald-700">-- PPM</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <span class="text-xs font-medium text-slate-500">Phosphate</span>
+                <span id="optP" class="text-sm font-bold text-amber-600">-- PPM</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <span class="text-xs font-medium text-slate-500">Zinc (Zn)</span>
+                <span id="optZn" class="text-sm font-bold text-rose-600">-- PPM</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-72">
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Soil NPK Dynamics</h3>
+              <canvas id="npkChart"></canvas>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-72">
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">pH & Moisture Dynamics</h3>
+              <canvas id="phMoistChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: NETWORK -->
+      <div id="section-network" class="hidden-section bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+          <h3 class="text-sm font-bold text-slate-800">Collaborative Intelligence (Neighbor Network)</h3>
+          <button id="btnMyCode" class="text-xs font-bold text-emerald-700 hover:text-emerald-800">My Share Code</button>
+        </div>
+        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div class="space-y-4">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Connect with Neighbors</h4>
+            <div class="flex gap-2">
+              <input id="neighborCodeInput" type="text" placeholder="Enter Neighbor Code" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+              <button id="btnConnect" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-900 transition-all">Request</button>
+            </div>
+            <div id="connectionStatus" class="text-[11px] text-slate-500 italic"></div>
           </div>
           <div class="space-y-4">
-            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span class="text-xs font-medium text-slate-500">Nitrate</span>
-              <span id="optN" class="text-sm font-bold text-emerald-700">-- PPM</span>
-            </div>
-            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span class="text-xs font-medium text-slate-500">Phosphate</span>
-              <span id="optP" class="text-sm font-bold text-amber-600">-- PPM</span>
-            </div>
-            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span class="text-xs font-medium text-slate-500">Zinc (Zn)</span>
-              <span id="optZn" class="text-sm font-bold text-rose-600">-- PPM</span>
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Invitations</h4>
+            <div id="neighborRequests" class="space-y-2">
+              <p class="text-xs text-slate-400 italic">No pending requests.</p>
             </div>
           </div>
         </div>
-
-        <!-- Charts Panel -->
-        <div class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-72">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Soil NPK Dynamics</h3>
-            <canvas id="npkChart"></canvas>
-          </div>
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-72">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">pH & Moisture Dynamics</h3>
-            <canvas id="phMoistChart"></canvas>
+        <div class="p-6 bg-slate-50 border-t border-slate-100">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Neighbor Alert Stream (Scoped)</h4>
+          <div id="neighborAlerts" class="space-y-3">
+            <p class="text-xs text-slate-400 italic">No critical alerts from neighbors.</p>
           </div>
         </div>
       </div>
 
-      <!-- Remedy Engine Section -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-100 bg-slate-50/50">
-          <h3 class="text-sm font-bold text-slate-800">Interactive Remedy Engine</h3>
-        </div>
-        <div class="p-6 space-y-6">
-          <!-- Tier 1: Nutrient Tabs -->
-          <div id="remedyNutrientTabs" class="flex flex-wrap gap-2">
-            <!-- Tabs injected by JS -->
-          </div>
-
-          <!-- Tier 2: Remedy Content -->
-          <div id="remedyContent" class="hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div class="flex items-center gap-2 mb-4">
-              <span id="activeNutrientLabel" class="text-lg font-bold text-slate-800">Nutrient</span>
-              <span id="nutrientStatusTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border">Status</span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Govt Available Additives</h4>
-                <p id="remedyGovt" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
-              </div>
-              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Homemade Remedy</h4>
-                <p id="remedyHome" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
-              </div>
-              <div class="p-4 rounded-xl border border-rose-200 bg-rose-50">
-                <h4 class="text-xs font-bold text-rose-600 uppercase mb-2">Emergency Action</h4>
-                <p id="remedyEmergency" class="text-sm text-rose-700 leading-relaxed">Select a nutrient to see recommendations.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Activity Table -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <!-- SECTION: HISTORY -->
+      <div id="section-history" class="hidden-section bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
           <h3 class="text-sm font-bold text-slate-800">Recent Activity & Field Scans</h3>
-
           <div class="flex items-center gap-4">
             <div class="flex items-center gap-2">
               <label class="text-[11px] font-semibold text-slate-400 uppercase">Alerts:</label>
@@ -284,9 +312,7 @@
                 <th class="px-6 py-3">Diagnostic Status</th>
               </tr>
             </thead>
-            <tbody id="historyBody" class="divide-y divide-slate-100">
-              <!-- Rows -->
-            </tbody>
+            <tbody id="historyBody" class="divide-y divide-slate-100"></tbody>
           </table>
         </div>
       </div>
@@ -297,6 +323,33 @@
   <script>
     let npkChart, phMoistChart;
     let remedyDatabase = {};
+    let sessionToken = null;
+    let currentFarmerId = null;
+
+    // Helper for safe DOM updates
+    function setElementText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = text;
+    }
+
+    function switchSection(sectionId) {
+      const sections = ['section-overview', 'section-telemetry', 'section-network', 'section-history'];
+      sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden-section');
+      });
+      const target = document.getElementById(sectionId);
+      if (target) target.classList.remove('hidden-section');
+
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('bg-emerald-700', 'text-white');
+        link.classList.add('text-slate-400');
+        if (link.getAttribute('data-section') === sectionId) {
+          link.classList.add('bg-emerald-700', 'text-white');
+          link.classList.remove('text-slate-400');
+        }
+      });
+    }
 
     function initCharts() {
       const commonOptions = {
@@ -312,44 +365,50 @@
         }
       };
 
-      const ctxNpk = document.getElementById('npkChart').getContext('2d');
-      npkChart = new Chart(ctxNpk, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [
-            { label: 'N', borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
-            { label: 'P', borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
-            { label: 'K', borderColor: '#7c3aed', backgroundColor: 'rgba(124, 58, 237, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
-          ]
-        },
-        options: commonOptions
-      });
+      const ctxNpk = document.getElementById('npkChart');
+      if (ctxNpk) {
+        npkChart = new Chart(ctxNpk.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [
+              { label: 'N', borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
+              { label: 'P', borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
+              { label: 'K', borderColor: '#7c3aed', backgroundColor: 'rgba(124, 58, 237, 0.1)', data: [], tension: 0.35, fill: true, pointRadius: 2 },
+            ]
+          },
+          options: commonOptions
+        });
+      }
 
-      const ctxPh = document.getElementById('phMoistChart').getContext('2d');
-      phMoistChart = new Chart(ctxPh, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [
-            { label: 'pH', borderColor: '#0ea5e9', data: [], tension: 0.35, yAxisID: 'y', pointRadius: 2 },
-            { label: 'Moisture %', borderColor: '#06b6d4', data: [], tension: 0.35, yAxisID: 'y1', pointRadius: 2 },
-          ]
-        },
-        options: {
-          ...commonOptions,
-          scales: {
-            x: commonOptions.scales.x,
-            y: { ...commonOptions.scales.y, min: 0, max: 14, title: { display: true, text: 'pH', color: '#64748b' } },
-            y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: '#64748b' }, title: { display: true, text: 'Moisture %', color: '#64748b' } }
+      const ctxPh = document.getElementById('phMoistChart');
+      if (ctxPh) {
+        phMoistChart = new Chart(ctxPh.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [
+              { label: 'pH', borderColor: '#0ea5e9', data: [], tension: 0.35, yAxisID: 'y', pointRadius: 2 },
+              { label: 'Moisture %', borderColor: '#06b6d4', data: [], tension: 0.35, yAxisID: 'y1', pointRadius: 2 },
+            ]
+          },
+          options: {
+            ...commonOptions,
+            scales: {
+              x: commonOptions.scales.x,
+              y: { ...commonOptions.scales.y, min: 0, max: 14, title: { display: true, text: 'pH', color: '#64748b' } },
+              y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: '#64748b' }, title: { display: true, text: 'Moisture %', color: '#64748b' } }
+            }
           }
-        }
-      });
+        });
+      }
     }
 
     function getFilterParams() {
-      const alerts = document.getElementById('filterAlerts').value;
-      const limit = document.getElementById('filterLimit').value;
+      const alertEl = document.getElementById('filterAlerts');
+      const limitEl = document.getElementById('filterLimit');
+      const alerts = alertEl ? alertEl.value : 'all';
+      const limit = limitEl ? limitEl.value : '25';
       const params = new URLSearchParams();
       if (alerts !== 'all') params.append('has_alerts', alerts);
       params.append('limit', limit);
@@ -358,7 +417,8 @@
 
     function updateExportLink() {
       const params = getFilterParams();
-      document.getElementById('exportCsvLink').href = `/api/export?${params}`;
+      const link = document.getElementById('exportCsvLink');
+      if (link) link.href = `/api/export?${params}`;
     }
 
     function getPHCondition(ph) {
@@ -369,16 +429,15 @@
 
     function triggerThreatOverlay(msg) {
       const overlay = document.getElementById('threatOverlay');
+      if (!overlay) return;
       const inner = overlay.firstElementChild;
-      document.getElementById('threatMsg').innerText = msg;
-
+      setElementText('threatMsg', msg);
       overlay.classList.remove('hidden');
       setTimeout(() => {
-        inner.classList.remove('translate-y-[-100%]', 'opacity-0');
+        if (inner) inner.classList.remove('translate-y-[-100%]', 'opacity-0');
       }, 10);
-
       setTimeout(() => {
-        inner.classList.add('translate-y-[-100%]', 'opacity-0');
+        if (inner) inner.classList.add('translate-y-[-100%]', 'opacity-0');
         setTimeout(() => overlay.classList.add('hidden'), 500);
       }, 10000);
     }
@@ -389,54 +448,59 @@
         if (!res.ok) throw new Error(`API Error: ${res.status}`);
         const data = await res.json();
 
-        document.getElementById('cropSelect').value = data.active_profile;
+        const cropSel = document.getElementById('cropSelect');
+        if (cropSel) cropSel.value = data.active_profile;
+
         const reading = data.latest_reading || {};
         const telemetry = reading.telemetry || {};
         const alerts = reading.alerts || [];
 
-        // Update Metrics
-        if (telemetry.soil_npk) {
-          document.getElementById('valN').innerText = telemetry.soil_npk[0];
-          document.getElementById('valP').innerText = telemetry.soil_npk[1];
-          document.getElementById('valK').innerText = telemetry.soil_npk[2];
-        }
+        // Update Metrics (Corrected keys)
+        setElementText('valN', Math.round(telemetry.nitrogen || 0));
+        setElementText('valP', Math.round(telemetry.phosphorus || 0));
+        setElementText('valK', Math.round(telemetry.potassium || 0));
 
         const ph = telemetry.ph ?? 7.0;
-        document.getElementById('valPH').innerText = ph;
+        setElementText('valPH', ph);
         const phCond = getPHCondition(ph);
         const phTag = document.getElementById('phTag');
-        phTag.innerText = phCond.text;
-        phTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${phCond.class}`;
-
-        const moisture = telemetry.moisture ?? 0;
-        document.getElementById('valMoist').innerText = `${moisture}%`;
-        document.getElementById('moistBar').style.width = `${moisture}%`;
-        const moistTag = document.getElementById('moistTag');
-        moistTag.innerText = moisture > 30 ? 'Healthy' : 'Dry';
-        moistTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${moisture > 30 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`;
-
-        const temp = telemetry.canopy_temp ?? 0;
-        document.getElementById('valTemp').innerText = `${temp}°C`;
-        document.getElementById('ambientTemp').innerText = `Ambient: ${telemetry.ambient_temp ?? '--'}°C`;
-        const riskTag = document.getElementById('tempRiskTag');
-        const isRisk = alerts.some(a => a.toLowerCase().includes('vascular') || a.toLowerCase().includes('critical'));
-        riskTag.innerText = isRisk ? 'High Risk' : 'Normal';
-        riskTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${isRisk ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`;
-
-        // Handle Threat Overlay
-        const bioThreat = alerts.find(a => a.toLowerCase().includes('bio-threat'));
-        if (bioThreat) {
-          triggerThreatOverlay(bioThreat);
+        if (phTag) {
+          phTag.innerText = phCond.text;
+          phTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${phCond.class}`;
         }
 
-        // Alerts Banner
+        const moisture = telemetry.moisture ?? 0;
+        setElementText('valMoist', `${moisture}%`);
+        const moistBar = document.getElementById('moistBar');
+        if (moistBar) moistBar.style.width = `${moisture}%`;
+        const moistTag = document.getElementById('moistTag');
+        if (moistTag) {
+          moistTag.innerText = moisture > 30 ? 'Healthy' : 'Dry';
+          moistTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${moisture > 30 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`;
+        }
+
+        const temp = telemetry.canopy_temp ?? 0;
+        setElementText('valTemp', `${temp}°C`);
+        setElementText('ambientTemp', `Ambient: ${telemetry.ambient_temp ?? '--'}°C`);
+        const riskTag = document.getElementById('tempRiskTag');
+        if (riskTag) {
+          const isRisk = alerts.some(a => a.toLowerCase().includes('vascular') || a.toLowerCase().includes('critical'));
+          riskTag.innerText = isRisk ? 'High Risk' : 'Normal';
+          riskTag.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border ${isRisk ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`;
+        }
+
+        const bioThreat = alerts.find(a => a.toLowerCase().includes('bio-threat'));
+        if (bioThreat) triggerThreatOverlay(bioThreat);
+
         const alertBox = document.getElementById('alertBox');
-        alertBox.innerHTML = alerts.map(a => `
-          <div class="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-sm font-medium flex items-center gap-3 animate-pulse">
-            <span class="bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">!</span>
-            <span>${a}</span>
-          </div>
-        `).join('');
+        if (alertBox) {
+          alertBox.innerHTML = alerts.map(a => `
+            <div class="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-sm font-medium flex items-center gap-3 animate-pulse">
+              <span class="bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">!</span>
+              <span>${a}</span>
+            </div>
+          `).join('');
+        }
 
         const params = getFilterParams();
         const histRes = await fetch(`/api/history?${params}`);
@@ -444,44 +508,121 @@
           const histData = await histRes.json();
           const history = histData.history || [];
           const chronological = [...history].reverse();
-
           const labels = chronological.map(r => r.timestamp.split('T')[1].substring(0, 8));
-          npkChart.data.labels = labels;
-          npkChart.data.datasets[0].data = chronological.map(r => r.nitrogen);
-          npkChart.data.datasets[1].data = chronological.map(r => r.phosphorus);
-          npkChart.data.datasets[2].data = chronological.map(r => r.potassium);
-          npkChart.update('none');
 
-          phMoistChart.data.labels = labels;
-          phMoistChart.data.datasets[0].data = chronological.map(r => r.ph);
-          phMoistChart.data.datasets[1].data = chronological.map(r => r.moisture);
-          phMoistChart.update('none');
-
+          if (npkChart) {
+            npkChart.data.labels = labels;
+            npkChart.data.datasets[0].data = chronological.map(r => r.nitrogen);
+            npkChart.data.datasets[1].data = chronological.map(r => r.phosphorus);
+            npkChart.data.datasets[2].data = chronological.map(r => r.potassium);
+            npkChart.update('none');
+          }
+          if (phMoistChart) {
+            phMoistChart.data.labels = labels;
+            phMoistChart.data.datasets[0].data = chronological.map(r => r.ph);
+            phMoistChart.data.datasets[1].data = chronological.map(r => r.moisture);
+            phMoistChart.update('none');
+          }
           const tableData = history.slice(0, 10);
           const historyBody = document.getElementById('historyBody');
-          if (tableData.length > 0) {
+          if (historyBody) {
             historyBody.innerHTML = tableData.map(row => `
               <tr class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-4 font-mono text-slate-400">${row.timestamp.split('T')[1].substring(0, 8)}</td>
                 <td class="px-6 py-4 font-medium text-slate-700">${row.crop_profile}</td>
-                <td class="px-6 py-4 text-slate-600">${Math.round(row.nitrogen)},${Math.round(row.phosphorus)},${Math.round(row.potassium)}</td>
+                <td class="px-6 py-4 text-slate-600">${Math.round(row.nitrogen || 0)},${Math.round(row.phosphorus || 0)},${Math.round(row.potassium || 0)}</td>
                 <td class="px-6 py-4 font-medium text-slate-800">${row.ph}</td>
                 <td class="px-6 py-4">
-                  ${row.alerts
-                    ? `<span class="bg-rose-100 text-rose-800 border border-rose-200 font-medium px-2 py-0.5 rounded text-[10px]">${row.alerts}</span>`
-                    : `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded text-[10px]">None</span>`
-                  }
+                  ${row.alerts ? `<span class="bg-rose-100 text-rose-800 border border-rose-200 font-medium px-2 py-0.5 rounded text-[10px]">${row.alerts}</span>` : `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded text-[10px]">None</span>`}
                 </td>
               </tr>
             `).join('');
-          } else {
-            historyBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">No filtered records found. System is currently stable.</td></tr>';
           }
         }
         updateExportLink();
+        updateNeighborIntel();
       } catch (err) {
         console.error("Dashboard update failed:", err);
       }
+    }
+
+    async function updateNeighborIntel() {
+      if (!sessionToken) return;
+      try {
+        const reqRes = await fetch(`/api/neighbors/requests?token=${sessionToken}`);
+        const reqData = await reqRes.json();
+        const reqContainer = document.getElementById('neighborRequests');
+        if (reqContainer) {
+          if (reqData.requests && reqData.requests.length > 0) {
+            reqContainer.innerHTML = reqData.requests.map(r => `
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-xs font-medium text-slate-600">${r.farmer_id}</span>
+                <div class="flex gap-1">
+                  <button onclick="approveNeighbor(${r.id}, 'accept')" class="bg-emerald-600 text-white text-[10px] px-2 py-1 rounded font-bold">Accept</button>
+                  <button onclick="approveNeighbor(${r.id}, 'reject')" class="bg-slate-400 text-white text-[10px] px-2 py-1 rounded font-bold">Reject</button>
+                </div>
+              </div>
+            `).join('');
+          } else {
+            reqContainer.innerHTML = '<p class="text-xs text-slate-400 italic">No pending requests.</p>';
+          }
+        }
+
+        const altRes = await fetch(`/api/neighbors/alerts?token=${sessionToken}`);
+        const altData = await altRes.json();
+        const altContainer = document.getElementById('neighborAlerts');
+        if (altContainer) {
+          if (altData.alerts && altData.alerts.length > 0) {
+            altContainer.innerHTML = altData.alerts.map(a => `
+              <div class="p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3">
+                <span class="bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">!</span>
+                <div>
+                  <p class="text-xs font-bold text-rose-800">${a.device_id}</p>
+                  <p class="text-xs text-rose-700 leading-relaxed">${a.alerts}</p>
+                </div>
+              </div>
+            `).join('');
+          } else {
+            altContainer.innerHTML = '<p class="text-xs text-slate-400 italic">No critical alerts from neighbors.</p>';
+          }
+        }
+      } catch (e) {
+        console.error("Neighbor update failed", e);
+      }
+    }
+
+    async function approveNeighbor(id, action) {
+      try {
+        await fetch(`/api/neighbors/approve?token=${sessionToken}&request_id=${id}&action=${action}`, { method: 'POST' });
+        updateNeighborIntel();
+      } catch (e) { alert("Error approving connection"); }
+    }
+
+    async function connectNeighbor() {
+      const codeInput = document.getElementById('neighborCodeInput');
+      const code = codeInput ? codeInput.value : '';
+      if (!code) return;
+      try {
+        const res = await fetch(`/api/neighbors/request?token=${sessionToken}&code=${code}`, { method: 'POST' });
+        const statusEl = document.getElementById('connectionStatus');
+        if (res.ok) {
+          if (statusEl) statusEl.innerText = "Request sent successfully!";
+          if (codeInput) codeInput.value = "";
+          updateNeighborIntel();
+        } else {
+          const err = await res.json();
+          if (statusEl) statusEl.innerText = "Error: " + (err.detail || "Unknown error");
+        }
+      } catch (e) { alert("Connection error"); }
+    }
+
+    async function showMyCode() {
+      if (!sessionToken) return;
+      try {
+        const res = await fetch(`/api/neighbors/code?token=${sessionToken}`);
+        const data = await res.json();
+        alert("Your Neighbor Share Code: " + data.code + "\nShare this with fellow farmers to collaborate.");
+      } catch (e) { alert("Error fetching code"); }
     }
 
     async function loadRemedies() {
@@ -489,15 +630,14 @@
         const res = await fetch('/api/remedies');
         remedyDatabase = await res.json();
         renderRemedyTabs();
-      } catch (e) {
-        console.error("Failed to load remedies", e);
-      }
+      } catch (e) { console.error("Failed to load remedies", e); }
     }
 
     function renderRemedyTabs() {
       const container = document.getElementById('remedyNutrientTabs');
+      if (!container) return;
       const nutrients = Object.keys(remedyDatabase);
-      container, innerHTML = nutrients.map(n => `
+      container.innerHTML = nutrients.map(n => `
         <button onclick="selectNutrient('${n}')" class="nutrient-chip px-3 py-1 rounded-full text-xs font-medium border border-slate-300 bg-white text-slate-600 hover:bg-emerald-50 transition-all">
           ${n}
         </button>
@@ -506,38 +646,76 @@
 
     function selectNutrient(n) {
       const data = remedyDatabase[n];
-      document.getElementById('remedyContent').classList.remove('hidden');
-      document.getElementById('activeNutrientLabel').innerText = n;
-      document.getElementById('remedyGovt').innerText = data['Govt Available Additives'];
-      document.getElementById('remedyHome').innerText = data['Homemade Remedy'];
-      document.getElementById('remedyEmergency').innerText = data['Emergency Action'];
+      if (!data) return;
+      const content = document.getElementById('remedyContent');
+      if (content) content.classList.remove('hidden');
+      setElementText('activeNutrientLabel', n);
+      setElementText('remedyGovt', data['Govt Available Additives']);
+      setElementText('remedyHome', data['Homemade Remedy']);
+      setElementText('remedyEmergency', data['Emergency Action']);
 
-      // Highlight chip
       document.querySelectorAll('.nutrient-chip').forEach(el => {
         el.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-600');
-        if (el.innerText === n) {
-          el.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600');
-        }
+        if (el.innerText === n) el.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600');
       });
     }
 
     document.getElementById('cropSelect').addEventListener('change', async (e) => {
       try {
         const val = e.target.value;
-        await fetch(`/api/profile?group_key=${encodeURIComponent(val)}`, { method: 'POST' });
+        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${encodeURIComponent(val)}`, { method: 'POST' });
         updateDashboard();
-      } catch (err) {
-        console.error("Error switching profile:", err);
-      }
+      } catch (err) { console.error("Error switching profile:", err); }
     });
 
     ['filterAlerts', 'filterLimit'].forEach(id => {
-      document.getElementById(id).addEventListener('change', updateDashboard);
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', updateDashboard);
     });
+
+    document.getElementById('btnSignIn').onclick = handleAuth;
+    document.getElementById('btnPreview').onclick = () => {
+      sessionToken = "preview-mode";
+      currentFarmerId = "AGRO-PREVIEW-2026";
+      document.getElementById('authModal').classList.add('hidden');
+      updateUserUI();
+      updateDashboard();
+    };
+    document.getElementById('btnConnect').onclick = connectNeighbor;
+    document.getElementById('btnMyCode').onclick = showMyCode;
+
+    function handleAuth() {
+      const id = document.getElementById('authId').value;
+      const token = document.getElementById('authToken').value;
+      const body = new FormData();
+      body.append('farmer_id', id);
+      body.append('token', token);
+
+      fetch('/api/auth/signin', { method: 'POST', body })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success' || data.status === 'registered') {
+            sessionToken = data.token;
+            currentFarmerId = data.farmer_id || (data.user ? data.user.farmer_id : 'Unknown');
+            document.getElementById('authModal').classList.add('hidden');
+            updateUserUI();
+            updateDashboard();
+          } else {
+            alert("Authentication failed");
+          }
+        })
+        .catch(e => alert("Connection error"));
+    }
+
+    function updateUserUI() {
+      const name = currentFarmerId ? "Farmer " + currentFarmerId.split('-').pop() : "Guest Farmer";
+      setElementText('userName', name);
+      setElementText('userIdText', currentFarmerId || 'No Session');
+    }
 
     initCharts();
     loadRemedies();
-    setInterval(updateDashboard, 3000);
+    setInterval(updateDashboard, 5000);
     updateDashboard();
   </script>
 </body>

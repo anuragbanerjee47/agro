@@ -1,49 +1,151 @@
-﻿import time
-import random
 import requests
+import time
+import random
+import numpy as np
+import cv2
+from datetime import datetime
 
-SERVER_URL = "https://agro-rxpe.onrender.com"
+BACKEND_URL = "https://agro-rxpe.onrender.com"
+DEVICE_ID = "ESP32_FIELD_NODE_01"
 
 
-def run_simulator():
-    print("AgroNode ESP32 Hardware Simulator started...")
-    while True:
-        # Generate dynamic agronomic fluctuations
-        payload = {
-            "device_id": "ESP32_FIELD_NODE_01",
-            "soil_npk": [
-                round(random.uniform(90.0, 140.0), 1),
-                round(random.uniform(30.0, 60.0), 1),
-                round(random.uniform(160.0, 210.0), 1)
-            ],
-            "ph": round(random.uniform(6.1, 7.8), 2),
-            "moisture": round(random.uniform(38.0, 58.0), 1),
-            "canopy_temp": round(random.uniform(24.0, 29.5), 1),
-            "ambient_temp": round(random.uniform(23.0, 26.0), 1),
-            "stem_diam": round(random.uniform(32.0, 36.0), 1)
-        }
+def generate_mock_image(nitrate_ppm, phosphate_ppm, zinc_ppm):
+    """Synthesizes an image reflecting nutrient concentrations via color shifts."""
+    # Image size 320x240
+    img = np.full((240, 320, 3), 128, dtype=np.uint8)
 
-        try:
-            res = requests.post(
-                f"{SERVER_URL}/api/telemetry", json=payload, timeout=5)
-            print(
-                f"[Telemetry] Status: {res.status_code} | NPK: {payload['soil_npk']} | pH: {payload['ph']} | Moisture: {payload['moisture']}%")
-        except Exception as e:
-            print(f"[Telemetry Error]: {e}")
+    # Define a center ROI (where the reagent liquid is)
+    cy, cx = 120, 160
+    rh, rw = 96, 128  # 40% of 240x320
 
-        # Simulate periodic optical test strip / colorimeter upload
-        try:
-            dummy_img = b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xFF\xDB\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.' \",#\x1c\x1c(7),01444\x1f'9=82<.342\xFF\xC0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xFF\xC4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\xFF\xDA\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xFF\xD9"
-            files = {"file": ("test_strip.jpg", dummy_img, "image/jpeg")}
-            data = {"device_id": "ESP32_FIELD_NODE_01"}
-            upload_res = requests.post(
-                f"{SERVER_URL}/api/upload", data=data, files=files, timeout=5)
-            print(f"[Upload] Status: {upload_res.status_code}")
-        except Exception as e:
-            print(f"[Upload Error]: {e}")
+    # Create a "liquid" color based on PPM
+    # nitrate -> a* (Red/Green) -> We simulate this by adjusting BGR
+    # phosphate -> b* (Blue/Yellow)
+    # zinc -> L + a*
 
-        time.sleep(3)
+    blue = int(np.clip(128 + (phosphate_ppm * 2), 0, 255))
+    green = int(np.clip(128 - (nitrate_ppm / 2), 0, 255))
+    red = int(np.clip(128 + (zinc_ppm * 10), 0, 255))
+
+    color = [blue, green, red]
+    img[cy - rh//2: cy + rh//2, cx - rw//2: cx + rw//2] = color
+
+    # Add some noise to make it look real
+    noise = np.random.randint(-10, 11, (240, 320, 3), dtype=np.int16)
+    img = np.clip(img.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+
+    _, buffer = cv2.imencode('.jpg', img)
+    return buffer.tobytes()
+
+
+def send_telemetry(anomaly_type=None):
+    # Base values
+    temp = 25.0 + random.uniform(-1, 1)
+    humidity = 60.0 + random.uniform(-5, 5)
+    ph = 6.5 + random.uniform(-0.2, 0.2)
+    moisture = 45.0 + random.uniform(-5, 5)
+    canopy_temp = 26.0 + random.uniform(-1, 1)
+    ambient_temp = 25.0 + random.uniform(-1, 1)
+    stem_piezo = 40.0 + random.uniform(-5, 5)
+
+    # Expanded Nutrient Set (Typical values)
+    nutrients = {
+        "nitrogen": random.uniform(100, 200),
+        "phosphorus": random.uniform(30, 70),
+        "potassium": random.uniform(100, 200),
+        "calcium": random.uniform(150, 300),
+        "magnesium": random.uniform(80, 150),
+        "sulfur": random.uniform(50, 120),
+        "zn": random.uniform(0.5, 3.0),
+        "fe": random.uniform(1.0, 4.0),
+        "b": random.uniform(0.1, 1.0),
+        "mn": random.uniform(0.5, 2.0),
+        "cu": random.uniform(0.1, 0.5),
+        "mo": random.uniform(0.01, 0.2),
+        "cl": random.uniform(0.2, 1.0),
+        "ni": random.uniform(0.01, 0.1),
+    }
+
+    # Threat Flags
+    pest_detected = random.random() < 0.05
+    nematode_detected = random.random() < 0.05
+
+    if anomaly_type == "alkaline_spike":
+        ph = 8.5 + random.uniform(0, 0.5)
+        logger_msg = "[ANOMALY] Injecting Alkaline pH spike"
+    elif anomaly_type == "heat_spike":
+        canopy_temp = 35.0 + random.uniform(0, 2)
+        ambient_temp = 28.0
+        logger_msg = "[ANOMALY] Injecting Canopy Heat spike"
+    elif anomaly_type == "drought":
+        moisture = 15.0
+        stem_piezo = 95.0
+        logger_msg = "[ANOMALY] Injecting Drought/Cavitation state"
+    else:
+        logger_msg = "Sending normal telemetry"
+
+    # Combine everything into telemetry payload
+    telemetry = {
+        "temperature": temp,
+        "humidity": humidity,
+        "ph": ph,
+        "moisture": moisture,
+        "canopy_temp": canopy_temp,
+        "ambient_temp": ambient_temp,
+        "stem_piezo": stem_piezo,
+        "pest_detected": pest_detected,
+        "nematode_detected": nematode_detected,
+        **nutrients
+    }
+
+    payload = {
+        "device_id": DEVICE_ID,
+        "timestamp": datetime.now().isoformat(),
+        "telemetry": telemetry,
+        "status": "online"
+    }
+
+    print(f"{logger_msg} -> {BACKEND_URL}/api/telemetry")
+    try:
+        requests.post(f"{BACKEND_URL}/api/telemetry", json=payload, timeout=5)
+    except Exception as e:
+        print(f"Error sending telemetry: {e}")
+
+
+def send_image(nitrate, phosphate, zinc):
+    print(f"Uploading nutrient image: N={nitrate}, P={phosphate}, Zn={zinc}")
+    img_bytes = generate_mock_image(nitrate, phosphate, zinc)
+    files = {'image': ('nutrient.jpg', img_bytes, 'image/jpeg')}
+    data = {'device_id': DEVICE_ID}
+    try:
+        requests.post(f"{BACKEND_URL}/api/upload",
+                      files=files, data=data, timeout=5)
+    except Exception as e:
+        print(f"Error uploading image: {e}")
 
 
 if __name__ == "__main__":
-    run_simulator()
+    print("Starting Mock Field Node Simulator...")
+    iteration = 0
+    while True:
+        iteration += 1
+
+        # Decide on anomaly
+        anomaly = None
+        if iteration % 10 == 0:
+            anomaly = "alkaline_spike"
+        elif iteration % 15 == 0:
+            anomaly = "heat_spike"
+        elif iteration % 20 == 0:
+            anomaly = "drought"
+
+        send_telemetry(anomaly)
+
+        # Simulate nutrient variation for images
+        send_image(
+            nitrate=random.uniform(0, 180),
+            phosphate=random.uniform(0, 60),
+            zinc=random.uniform(0, 4.5)
+        )
+
+        time.sleep(10)

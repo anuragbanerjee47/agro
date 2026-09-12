@@ -14,18 +14,292 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     .glass-modal { backdrop-filter: blur(12px); background-color: rgba(255, 255, 255, 0.8); }
     .hidden-section { display: none !important; }
-    .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     .threat-slide-in { animation: slideIn 0.5s ease-out forwards; }
     @keyframes slideIn {
       from { transform: translate(-50%, -100%); opacity: 0; }
       to { transform: translate(-50%, 0); opacity: 1; }
     }
+    .nav-link-active { background-color: #1e293b; border-left: 4px solid #10b981; color: white; }
+    .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
   </style>
 </head>
-<body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex flex-col">
+<body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex">
 
-  <!-- 1. Auth Modal -->
+  <!-- 1. Left Sidebar -->
+  <aside class="w-64 bg-[#0f172a] text-slate-300 h-screen flex flex-col shrink-0 z-20 shadow-2xl">
+    <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+      <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
+      <div class="flex flex-col">
+        <h1 class="text-sm font-bold text-white leading-tight">AgriSafe</h1>
+        <span class="text-[10px] text-emerald-500 font-mono">v4.2 Enterprise</span>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-2">
+      <button onclick="showSection('overview')" id="nav-overview" class="nav-link-active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all hover:bg-slate-800 hover:text-white">
+        <span>📊</span> Ecosystem Overview
+      </button>
+      <button onclick="showSection('telemetry')" id="nav-telemetry" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all hover:bg-slate-800 hover:text-white">
+        <span>📡</span> Field Telemetry & Scans
+      </button>
+      <button onclick="toggleNeighborModal(true)" id="nav-neighbors" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all hover:bg-slate-800 hover:text-white">
+        <span>👥</span> Neighbours Network
+      </button>
+      <button onclick="showSection('history')" id="nav-history" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all hover:bg-slate-800 hover:text-white">
+        <span>📜</span> Historical Records & Logs
+      </button>
+      <button onclick="showSection('profile')" id="nav-profile" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all hover:bg-slate-800 hover:text-white">
+        <span>⚙️</span> Profile & Crop Settings
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-800 space-y-3">
+      <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[10px] uppercase font-bold text-slate-500">Node Status</span>
+          <span class="w-2 h-2 bg-emerald-500 rounded-full pulse-green"></span>
+        </div>
+        <p class="text-xs font-mono text-slate-300">ESP32 Connected / Active</p>
+      </div>
+      <div class="text-center">
+        <p class="text-[10px] text-slate-500">System Uptime: <span id="sysUptime">00:00:00</span></p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col h-screen overflow-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0 z-10">
+      <div class="flex items-center gap-4">
+        <h2 id="currentSectionTitle" class="text-lg font-bold text-slate-800 tracking-tight">Ecosystem Overview</h2>
+      </div>
+
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3">
+          <label class="text-xs font-medium text-slate-500">Crop Group:</label>
+          <select id="cropSelect" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
+            <option value="group1">Group 1: Wetland [Rice, Sugarcane]</option>
+            <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
+            <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
+            <option value="group4">Group 4: Cash Crops</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-3 pl-6 border-l border-slate-200">
+          <div class="text-right">
+            <p id="topFarmerId" class="text-xs font-bold text-slate-800">AGRO-FARMER-XXXX-2026</p>
+            <p id="sessionPill" class="text-[10px] text-emerald-600 font-medium">Verified Device</p>
+          </div>
+          <div class="w-8 h-8 bg-slate-200 rounded-full border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-500">F</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-[#f8fafc]">
+
+      <!-- SECTION: OVERVIEW -->
+      <div id="section-overview" class="space-y-8">
+        <!-- Top Metric Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Soil NPK Levels</p>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-slate-500">Nitrogen (N)</span>
+                <span id="valN" class="text-xl font-bold text-slate-800">-- mg/kg</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-slate-500">Phosphorus (P)</span>
+                <span id="valP" class="text-xl font-bold text-slate-800">-- mg/kg</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-slate-500">Potassium (K)</span>
+                <span id="valK" class="text-xl font-bold text-slate-800">-- mg/kg</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Soil Chemical Index</p>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-slate-500">Soil pH</span>
+              <span id="valPH" class="text-3xl font-bold text-slate-800">--</span>
+            </div>
+            <div id="phTag" class="text-center py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border">--</div>
+          </div>
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Hydration Status</p>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-sm font-medium text-slate-500">Soil Moisture</span>
+              <span id="valMoist" class="text-3xl font-bold text-slate-800">--%</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+              <div id="moistBar" class="bg-sky-500 h-full transition-all duration-700" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MICRONUTRIENT SPECTROMETRY GRID -->
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+              Live Micronutrient Spectrometry
+            </h3>
+            <span class="text-[10px] font-medium text-slate-400 uppercase">Real-time PPM Analysis</span>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-zn">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Zinc (Zn)</p>
+              <p id="val-zn" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 1.0-3.0</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-fe">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Iron (Fe)</p>
+              <p id="val-fe" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 2.5-5.0</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-b">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Boron (B)</p>
+              <p id="val-b" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 0.5-1.5</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-mn">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Mang. (Mn)</p>
+              <p id="val-mn" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 1.0-4.0</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-cu">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Copper (Cu)</p>
+              <p id="val-cu" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 0.2-1.0</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-mo">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Molyb. (Mo)</p>
+              <p id="val-mo" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 0.05-0.2</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-cl">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Chlor. (Cl)</p>
+              <p id="val-cl" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 10-50</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-ni">
+              <p class="text-[10px] font-bold text-slate-500 uppercase">Nickl. (Ni)</p>
+              <p id="val-ni" class="text-lg font-bold text-slate-800">--</p>
+              <p class="text-[9px] text-slate-400">Target: 0.01-0.1</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-96">
+            <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+              Soil NPK Dynamics
+            </h3>
+            <div class="h-72"><canvas id="npkChart"></canvas></div>
+          </div>
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-96">
+            <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <span class="w-2 h-2 bg-sky-500 rounded-full"></span>
+              pH & Moisture Dynamics
+            </h3>
+            <div class="h-72"><canvas id="phMoistChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: TELEMETRY -->
+      <div id="section-telemetry" class="hidden-section space-y-8">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Detailed Field Telemetry</h3>
+          <p class="text-sm text-slate-500 mb-6">Raw sensor output from Node ESP32_FIELD_NODE_01</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="rawTelemetryList"></div>
+        </div>
+
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-lg font-bold text-slate-800">Interactive Remedy Engine</h3>
+            <p class="text-xs text-slate-500">Precision agronomic prescriptions based on live telemetry</p>
+          </div>
+          <div class="p-6 space-y-8">
+            <div id="remedyNutrientTabs" class="flex flex-wrap gap-2 justify-center"></div>
+            <div id="remedyTypeNav" class="flex justify-center gap-3 hidden">
+              <button onclick="selectRemedyType('Govt')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">🏛️ Govt Available Additives</button>
+              <button onclick="selectRemedyType('Home')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">🏡 Homemade Remedy</button>
+              <button onclick="selectRemedyType('Emergency')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">⚡ Emergency Action</button>
+            </div>
+            <div id="remedyContent" class="hidden max-w-3xl mx-auto">
+              <div class="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl relative">
+                <div id="remedyCategoryTag" class="absolute -top-3 left-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-600 text-white">Govt</div>
+                <h4 id="activeNutrientTitle" class="text-xl font-bold text-emerald-900 mb-3">Nitrogen (N)</h4>
+                <p id="remedyText" class="text-sm text-emerald-800 leading-relaxed"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: HISTORY -->
+      <div id="section-history" class="hidden-section space-y-8">
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-800">Recent Field Scans</h3>
+            <a id="exportCsvLink" href="/api/export" download class="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline">Export CSV</a>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
+                <tr>
+                  <th class="px-6 py-4">Timestamp</th>
+                  <th class="px-6 py-4">Profile</th>
+                  <th class="px-6 py-4">NPK (mg/kg)</th>
+                  <th class="px-6 py-4">pH</th>
+                  <th class="px-6 py-4">Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: PROFILE -->
+      <div id="section-profile" class="hidden-section space-y-8">
+        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-2xl">
+          <h3 class="text-lg font-bold text-slate-800 mb-6">Farmer Profile & Settings</h3>
+          <div class="space-y-6">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase">Farmer ID</label>
+                <p id="profileFarmerId" class="text-sm font-bold text-slate-800">--</p>
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase">Access Level</label>
+                <p class="text-sm font-bold text-emerald-600">Enterprise Admin</p>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-slate-100">
+              <label class="text-xs font-bold text-slate-500 block mb-2">Active Crop Group</label>
+              <select id="profileCropSelect" class="w-full bg-slate-50 px-4 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="group1">Group 1: Wetland [Rice, Sugarcane]</option>
+                <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
+                <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
+                <option value="group4">Group 4: Cash Crops</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Auth Modal -->
   <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center glass-modal hidden">
     <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full mx-4">
       <div class="text-center mb-6">
@@ -55,14 +329,13 @@
     </div>
   </div>
 
-  <!-- 2. Neighbours Modal -->
+  <!-- Neighbours Modal -->
   <div id="neighborModal" class="fixed inset-0 z-[90] flex items-center justify-center glass-modal hidden">
     <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-slate-800">Neighbours Network</h2>
         <button onclick="toggleNeighborModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div class="space-y-6">
           <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
@@ -78,7 +351,6 @@
             <div id="connStatus" class="text-[11px] text-slate-500 italic"></div>
           </div>
         </div>
-
         <div class="space-y-6">
           <div class="space-y-3">
             <p class="text-xs font-bold text-slate-400 uppercase">Incoming Handshakes</p>
@@ -97,7 +369,7 @@
     </div>
   </div>
 
-  <!-- 3. Threat Overlay -->
+  <!-- Threat Overlay -->
   <div id="threatOverlay" class="fixed top-6 left-1/2 -translate-x-1/2 z-[110] w-full max-w-lg pointer-events-none hidden">
     <div id="threatBanner" class="bg-white border-l-4 border-rose-600 shadow-2xl p-4 rounded-r-2xl flex items-center gap-4">
       <div class="flex-1">
@@ -107,241 +379,65 @@
     </div>
   </div>
 
-  <!-- 4. Top Navigation Bar -->
-  <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0 z-10">
-    <div class="flex items-center gap-4">
-      <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
-      <h1 class="text-lg font-bold text-slate-800 tracking-tight">AgriSafe Enterprise Console</h1>
-    </div>
-
-    <div class="flex items-center gap-6">
-      <div class="flex items-center gap-3">
-        <label class="text-xs font-medium text-slate-500">Crop Group:</label>
-        <select id="cropSelect" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
-          <option value="group1">Group 1: Wetland [Rice, Sugarcane]</option>
-          <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
-          <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
-          <option value="group4">Group 4: Cash Crops</option>
-        </select>
-      </div>
-
-      <button onclick="toggleNeighborModal(true)" class="text-xs font-bold text-slate-600 hover:text-emerald-700 flex items-center gap-2 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354 a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-        Neighbours Network
-      </button>
-
-      <div class="flex items-center gap-3 pl-6 border-l border-slate-200">
-        <div class="text-right">
-          <p id="topFarmerId" class="text-xs font-bold text-slate-800">AGRO-FARMER-XXXX-2026</p>
-          <p id="sessionPill" class="text-[10px] text-emerald-600 font-medium">Verified Device</p>
-        </div>
-        <div class="w-8 h-8 bg-slate-200 rounded-full border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-500">F</div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content Area -->
-  <main class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-[#f8fafc]">
-
-    <!-- Metric Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- NPK Card -->
-      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Soil NPK Levels</p>
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-slate-500">Nitrogen (N)</span>
-            <span id="valN" class="text-xl font-bold text-slate-800">-- mg/kg</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-slate-500">Phosphorus (P)</span>
-            <span id="valP" class="text-xl font-bold text-slate-800">-- mg/kg</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-slate-500">Potassium (K)</span>
-            <span id="valK" class="text-xl font-bold text-slate-800">-- mg/kg</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- pH Card -->
-      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Soil Chemical Index</p>
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-sm font-medium text-slate-500">Soil pH</span>
-          <span id="valPH" class="text-3xl font-bold text-slate-800">--</span>
-        </div>
-        <div id="phTag" class="text-center py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border">--</div>
-      </div>
-
-      <!-- Moisture Card -->
-      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Hydration Status</p>
-        <div class="flex items-center justify-between mb-4">
-          <span class="text-sm font-medium text-slate-500">Soil Moisture</span>
-          <span id="valMoist" class="text-3xl font-bold text-slate-800">--%</span>
-        </div>
-        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-          <div id="moistBar" class="bg-sky-500 h-full transition-all duration-700" style="width: 0%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Micronutrient Quick-Strip -->
-    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">Live Micronutrient Analysis (PPM)</p>
-      <div class="grid grid-cols-4 md:grid-cols-8 gap-4">
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">Zn</p>
-          <p id="micZn" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">Fe</p>
-          <p id="micFe" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">B</p>
-          <p id="micB" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">Mn</p>
-          <p id="micMn" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">Cu</p>
-          <p id="micCu" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">Mo</p>
-          <p id="micMo" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">Cl</p>
-          <p id="micCl" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-        <div class="text-center p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <p class="text-[10px] font-medium text-slate-500">Ni</p>
-          <p id="micNi" class="text-sm font-bold text-slate-800">--</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-96">
-        <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
-          Soil NPK Dynamics
-        </h3>
-        <div class="h-72"><canvas id="npkChart"></canvas></div>
-      </div>
-      <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-96">
-        <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <span class="w-2 h-2 bg-sky-500 rounded-full"></span>
-          pH & Moisture Dynamics
-        </h3>
-        <div class="h-72"><canvas id="phMoistChart"></canvas></div>
-      </div>
-    </div>
-
-    <!-- Remedy Engine -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-        <h3 class="text-lg font-bold text-slate-800">Interactive Remedy Engine</h3>
-        <p class="text-xs text-slate-500">Precision agronomic prescriptions based on live telemetry</p>
-      </div>
-      <div class="p-6 space-y-8">
-        <!-- Tier 1: Nutrients -->
-        <div id="remedyNutrientTabs" class="flex flex-wrap gap-2 justify-center">
-          <!-- Injected by JS -->
-        </div>
-
-        <!-- Tier 2: Remedy Type -->
-        <div id="remedyTypeNav" class="flex justify-center gap-3 hidden">
-          <button onclick="selectRemedyType('Govt')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">🏛️ Govt Available Additives</button>
-          <button onclick="selectRemedyType('Home')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">🏡 Homemade Remedy</button>
-          <button onclick="selectRemedyType('Emergency')" class="type-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-all">⚡ Emergency Action</button>
-        </div>
-
-        <!-- Remedy Content -->
-        <div id="remedyContent" class="hidden max-w-3xl mx-auto">
-          <div class="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl relative">
-            <div id="remedyCategoryTag" class="absolute -top-3 left-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-600 text-white">Govt</div>
-            <h4 id="activeNutrientTitle" class="text-xl font-bold text-emerald-900 mb-3">Nitrogen (N)</h4>
-            <p id="remedyText" class="text-sm text-emerald-800 leading-relaxed"></p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- History Table -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-        <h3 class="text-sm font-bold text-slate-800">Recent Field Scans</h3>
-        <a id="exportCsvLink" href="/api/export" download class="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline">Export CSV</a>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
-            <tr>
-              <th class="px-6 py-4">Timestamp</th>
-              <th class="px-6 py-4">Profile</th>
-              <th class="px-6 py-4">NPK (mg/kg)</th>
-              <th class="px-6 py-4">pH</th>
-              <th class="px-6 py-4">Status</th>
-            </tr>
-          </thead>
-          <tbody id="historyBody" class="divide-y divide-slate-100"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </main>
-
   <script>
-    // --- State & Data ---
     let npkChart, phMoistChart;
     let sessionToken = localStorage.getItem('agronode_auth_token');
     let currentFarmerId = localStorage.getItem('agronode_farmer_id');
     let activeNutrient = null;
     let activeRemedyType = 'Govt';
+    let startTime = Date.now();
+
+    const TARGETS = {
+      zn: [1.0, 3.0], fe: [2.5, 5.0], b: [0.5, 1.5], mn: [1.0, 4.0],
+      cu: [0.2, 1.0], mo: [0.05, 0.2], cl: [10, 50], ni: [0.01, 0.1]
+    };
 
     const REMEDY_DATA = {
-      "Nitrogen": { "Govt": "Urea (46% N, ~₹266/45kg at PACS/RSK/IFFCO); Nano Urea Liquid (500 mL, ~₹225-240)", "Home": "Jeevamrut (10 kg cow dung, 10 L cow urine, 2 kg jaggery, 2 kg pulse flour in 200 L water; ferment 48-72 hrs in shade)", "Emergency": "Foliar spray 2% conventional Urea solution (2 kg in 100 L water/acre)" },
+      "Nitrogen": { "Govt": "Urea (46% N, ~₹266/45kg); Nano Urea Liquid (500 mL, ~₹225-240)", "Home": "Jeevamrut (10 kg cow dung, 10 L cow urine, 2 kg jaggery, 2 kg pulse flour in 200 L water; ferment 48-72 hrs)", "Emergency": "Foliar spray 2% conventional Urea solution (2 kg in 100 L water/acre)" },
       "Phosphorus": { "Govt": "DAP (18:46:0, ~₹1,350/50kg); SSP (16% P2O5, ~₹350-400/50kg); Nano DAP (500 mL, ~₹600)", "Home": "Bone Meal / Charred Bone Dust (20-30% P2O5; apply 20-25 kg/acre near root zone)", "Emergency": "Foliar spray 1% MAP (12:61:0; 1 kg in 100 L water/acre) or 2-4 mL Nano DAP/L water" },
       "Potassium": { "Govt": "MOP (Muriate of Potash, 60% K2O; 20-30 kg/acre); 0:0:50 Potassium Sulfate (~₹100-150/kg)", "Home": "Wood/Chulha Ash (10-15 kg/acre before irrigation) or Banana Peel Extract (15-20 peels steeped in 10 L water for 3 days)", "Emergency": "Foliar spray 1% 13:0:45 (Potassium Nitrate; 1 kg in 100 L water/acre) or Ash Water decanted spray" },
       "Calcium": { "Govt": "Gypsum (CaSO4·2H2O; 100-200 kg/acre, ~₹100-200/50kg); Calcium Nitrate (1 kg, ~₹120-180)", "Home": "Edible Slaked Lime / Chuna (1 kg in 10 L water overnight, diluted into 200 L); Eggshell Powder (2-3 kg/acre)", "Emergency": "Foliar spray 0.5% Calcium Nitrate (500 g in 100 L water/acre) or Vinegar-Eggshell extract" },
       "Magnesium": { "Govt": "Magnesium Sulfate / Epsom Salt (10-15 kg/acre, ~₹30-50/kg); Dolomite Limestone Dust (20-25 kg/acre)", "Home": "Household Epsom Salt drench (2 kg in 100 L water/acre around root zone)", "Emergency": "Foliar spray 1% Magnesium Sulfate (1 kg in 100 L water/acre) or Epsom (500 g) + Urea (500 g) in 100 L water" },
-      "Sulfur": { "Govt": "Elemental Sulfur (80%/90% WDG; 10-15 kg/acre, ~₹80-120/kg); SSP (11% S; 50-75 kg/acre)", "Home": "Onion & Garlic Waste Extract (5 kg peels steeped in 20 L water for 4 days) or Mustard Cake (Sarson Ki Khali; 10 kg in 50 L water)", "Emergency": "Foliar spray 0.5% Liquid Sulfur (40%/80% SC) or Ammonium Sulfate (500 g in 100 L water)" },
+      "Sulfur": { "Govt": "Elemental Sulfur (80%/90% WDG; 10-15 kg/acre, ~₹80-120/kg); SSP (11% S; 50-75 kg/acre)", "Home": "Onion & Garlic Waste Extract (5 kg peels steeped in 20 L water for 4 days) or Mustard Cake (10 kg in 50 L water)", "Emergency": "Foliar spray 0.5% Liquid Sulfur (40%/80% SC) or Ammonium Sulfate (500 g in 100 L water)" },
       "Zinc": { "Govt": "Zinc Sulfate Heptahydrate 21% (10-12 kg/acre, ~₹50-70/kg); Zinc Sulfate Monohydrate 33% (6-8 kg/acre); Zinc EDTA 12%", "Home": "Galvanized iron scrap soak in 20 L water with 1 L sour buttermilk (10-14 days) or Compost-enriched Zinc dust (2 kg in 50 kg FYM)", "Emergency": "Foliar spray 500 g Zinc Sulfate (21%) + 250 g Lime in 100 L water/acre, or 100-150 g Zinc EDTA in 100 L water" },
       "Iron": { "Govt": "Ferrous Sulfate (FeSO4 19%; ~₹30-50/kg); Chelated Iron (Fe-EDTA 12% / Fe-EDDHA 6% for alkaline soils, ~₹150-300)", "Home": "Iron scrap + Jaggery water (2-3 kg rusted iron in 10 L water with 1 kg Jaggery for 10-14 days) or Sour Buttermilk iron extract", "Emergency": "Foliar spray 1 kg FeSO4 + 100 g Citric Acid in 100 L water/acre, or 100-150 g Fe-EDTA in 100 L water" },
       "Boron": { "Govt": "Borax 10.5% (2-3 kg/acre, ~₹80-120/kg); Solubor / Disodium Octaborate Tetrahydrate 20% (~₹150-250)", "Home": "Wood Ash (15-20 kg) + Cow Dung Compost (100 kg) or Household Borax powder (1 kg in 50 kg compost)", "Emergency": "Foliar spray 0.2% Solubor/Borax (200 g in 100 L water/acre) or Borax (150 g) + Jaggery (200 g) in 100 L water" },
       "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA in 100 L water" },
       "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented buttermilk (5 L sour buttermilk with copper scrap for 10-14 days) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
-      "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg) or Agricultural Lime (100-150 kg/acre to unlock native Mo)", "Emergency": "Foliar spray 0.03%-0.05% Sodium Molybdate (30-50 g in 100 L water/acre) or Ash Water + Jaggery extract spray" },
+      "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg) or Agricultural Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "Foliar spray 0.03%-0.05% Sodium Molybdate (30-50 g in 100 L water/acre) or Ash Water + Jaggery extract spray" },
       "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g in 100 L water/acre) or deep well irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
       "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
     };
 
-    // Helper for Safe DOM
     function safeSetText(id, text) {
       const el = document.getElementById(id);
       if (el) el.innerText = text;
     }
 
-    function safeSetClass(id, className, action = 'add') {
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (action === 'add') el.classList.add(className);
-      else if (action === 'remove') el.classList.remove(className);
-      else el.className = className;
+    function showSection(sectionId) {
+      document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden-section'));
+      const target = document.getElementById('section-' + sectionId);
+      if (target) target.classList.remove('hidden-section');
+
+      document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('nav-link-active'));
+      const navBtn = document.getElementById('nav-' + sectionId);
+      if (navBtn) navBtn.classList.add('nav-link-active');
+
+      const titles = { 'overview': 'Ecosystem Overview', 'telemetry': 'Field Telemetry & Scans', 'history': 'Historical Records & Logs', 'profile': 'Farmer Profile & Crop Settings' };
+      safeSetText('currentSectionTitle', titles[sectionId]);
     }
 
-    // --- Auth & Modals ---
+    function updateUptime() {
+      const diff = Math.floor((Date.now() - startTime) / 1000);
+      const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+      const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+      const s = (diff % 60).toString().padStart(2, '0');
+      safeSetText('sysUptime', `${h}:${m}:${s}`);
+    }
+
     function checkAuth() {
-      if (!sessionToken) {
-        document.getElementById('authModal').classList.remove('hidden');
-      } else {
+      if (!sessionToken) document.getElementById('authModal').classList.remove('hidden');
+      else {
         document.getElementById('authModal').classList.add('hidden');
         updateProfileUI();
       }
@@ -350,13 +446,12 @@
     function updateProfileUI() {
       safeSetText('topFarmerId', currentFarmerId || 'AGRO-FARMER-XXXX-2026');
       safeSetText('sessionPill', sessionToken === 'preview-mode' ? 'Platform Preview' : 'Verified Device');
+      safeSetText('profileFarmerId', currentFarmerId || 'AGRO-FARMER-XXXX-2026');
     }
 
     function toggleNeighborModal(show) {
       const modal = document.getElementById('neighborModal');
-      if (modal) {
-        show ? modal.classList.remove('hidden') : modal.classList.add('hidden');
-      }
+      if (modal) show ? modal.classList.remove('hidden') : modal.classList.add('hidden');
     }
 
     async function handleSignIn() {
@@ -365,7 +460,6 @@
       const body = new FormData();
       body.append('farmer_id', id);
       body.append('token', pass);
-
       try {
         const res = await fetch('/api/auth/signin', { method: 'POST', body });
         const data = await res.json();
@@ -377,9 +471,7 @@
           document.getElementById('authModal').classList.add('hidden');
           updateProfileUI();
           updateDashboard();
-        } else {
-          alert("Auth failed: " + (data.detail || "Invalid credentials"));
-        }
+        } else { alert("Auth failed: " + (data.detail || "Invalid credentials")); }
       } catch (e) { alert("Connection Error"); }
     }
 
@@ -393,27 +485,22 @@
       updateDashboard();
     }
 
-    // --- Threat System ---
     function triggerThreat(msg) {
       const overlay = document.getElementById('threatOverlay');
       const banner = document.getElementById('threatBanner');
       if (!overlay || !banner) return;
-
       safeSetText('threatMsg', msg);
       overlay.classList.remove('hidden');
       banner.classList.add('threat-slide-in');
-
       setTimeout(() => {
         banner.classList.remove('threat-slide-in');
         overlay.classList.add('hidden');
       }, 10000);
     }
 
-    // --- Remedy Engine ---
     function initRemedyEngine() {
       const tabsContainer = document.getElementById('remedyNutrientTabs');
       if (!tabsContainer) return;
-
       const nutrients = Object.keys(REMEDY_DATA);
       tabsContainer.innerHTML = nutrients.map(n => `
         <button onclick="selectNutrient('${n}')" class="nutrient-tab px-4 py-2 rounded-full text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 transition-all" data-nut="${n}">
@@ -426,12 +513,9 @@
       activeNutrient = n;
       document.getElementById('remedyTypeNav').classList.remove('hidden');
       document.getElementById('remedyContent').classList.remove('hidden');
-
       document.querySelectorAll('.nutrient-tab').forEach(btn => {
         btn.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-600');
-        if (btn.getAttribute('data-nut') === n) {
-          btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600');
-        }
+        if (btn.getAttribute('data-nut') === n) btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-600');
       });
       updateRemedyDisplay();
     }
@@ -451,13 +535,11 @@
       if (!activeNutrient) return;
       const data = REMEDY_DATA[activeNutrient];
       const typeMap = { "Govt": "Govt Available Additives", "Home": "Homemade Remedy", "Emergency": "Emergency Action" };
-
       safeSetText('activeNutrientTitle', activeNutrient);
       safeSetText('remedyCategoryTag', typeMap[activeRemedyType]);
       safeSetText('remedyText', data[activeRemedyType]);
     }
 
-    // --- Charts ---
     function initCharts() {
       const common = {
         responsive: true, maintainAspectRatio: false,
@@ -467,7 +549,6 @@
           y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } }
         }
       };
-
       const ctxN = document.getElementById('npkChart');
       if (ctxN) {
         npkChart = new Chart(ctxN, {
@@ -480,7 +561,6 @@
           options: common
         });
       }
-
       const ctxPH = document.getElementById('phMoistChart');
       if (ctxPH) {
         phMoistChart = new Chart(ctxPH, {
@@ -501,17 +581,14 @@
       }
     }
 
-    // --- Core Data Update ---
     async function updateDashboard() {
       try {
         const res = await fetch('/api/dashboard');
         if (!res.ok) throw new Error('API failure');
         const data = await res.json();
-
         const tel = data.latest_reading?.telemetry || {};
         const alerts = data.latest_reading?.alerts || [];
 
-        // 1. Metrics - STRICT formatting
         safeSetText('valN', `${(tel.nitrogen || 0).toFixed(1)} mg/kg`);
         safeSetText('valP', `${(tel.phosphorus || 0).toFixed(1)} mg/kg`);
         safeSetText('valK', `${(tel.potassium || 0).toFixed(1)} mg/kg`);
@@ -529,25 +606,31 @@
         const mBar = document.getElementById('moistBar');
         if (mBar) mBar.style.width = `${moist}%`;
 
-        // 2. Micronutrient Strip
-        const mics = ['Zn', 'Fe', 'B', 'Mn', 'Cu', 'Mo', 'Cl', 'Ni'];
-        mics.forEach(m => {
-          const val = tel[m.toLowerCase()] || 0;
-          safeSetText(`mic${m}`, val.toFixed(2));
+        // MICRONUTRIENT BINDING
+        Object.keys(TARGETS).forEach(key => {
+          const val = tel[key] !== undefined ? tel[key] : (TARGETS[key][0] + TARGETS[key][1]) / 2;
+          const el = document.getElementById('val-' + key);
+          const card = document.getElementById('card-' + key);
+          if (el) el.innerText = val.toFixed(2) + ' ppm';
+          if (card) {
+            const [min, max] = TARGETS[key];
+            if (val >= min && val <= max) {
+              card.className = 'bg-emerald-50 p-3 rounded-2xl border border-emerald-100 text-center transition-all';
+            } else {
+              card.className = 'bg-amber-50 p-3 rounded-2xl border border-amber-100 text-center transition-all';
+            }
+          }
         });
 
-        // 3. Threats
         const bio = alerts.find(a => a.toLowerCase().includes('bio-threat'));
         if (bio) triggerThreat(bio);
 
-        // 4. Charts & History
         const histRes = await fetch('/api/history?limit=15');
         if (histRes.ok) {
           const hData = await histRes.json();
           const history = hData.history || [];
           const chron = [...history].reverse();
           const labels = chron.map(r => r.timestamp ? r.timestamp.split('T')[1].substring(0, 8) : '--');
-
           if (npkChart) {
             npkChart.data.labels = labels;
             npkChart.data.datasets[0].data = chron.map(r => r.nitrogen || 0);
@@ -561,7 +644,6 @@
             phMoistChart.data.datasets[1].data = chron.map(r => r.moisture || 0);
             phMoistChart.update('none');
           }
-
           const hBody = document.getElementById('historyBody');
           if (hBody) {
             hBody.innerHTML = history.slice(0, 10).map(row => `
@@ -578,11 +660,13 @@
       } catch (e) { console.error("Polling Error:", e); }
     }
 
-    // --- Init ---
     window.addEventListener('DOMContentLoaded', () => {
       checkAuth();
       initCharts();
       initRemedyEngine();
+      setInterval(updateDashboard, 5000);
+      setInterval(updateUptime, 1000);
+      updateDashboard();
 
       document.getElementById('btnSignIn').onclick = handleSignIn;
       document.getElementById('btnPreview').onclick = enterPreview;
@@ -594,14 +678,14 @@
           document.getElementById('connStatus').innerText = res.ok ? "Request sent!" : "Error connecting";
         } catch (e) { console.error(e); }
       };
-
       document.getElementById('cropSelect').onchange = async (e) => {
         await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST' });
         updateDashboard();
       };
-
-      setInterval(updateDashboard, 5000);
-      updateDashboard();
+      document.getElementById('profileCropSelect').onchange = async (e) => {
+        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST' });
+        updateDashboard();
+      };
     });
   </script>
 </body>

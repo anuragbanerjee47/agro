@@ -15,7 +15,8 @@
     .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     .glass-modal { backdrop-filter: blur(8px); background-color: rgba(255, 255, 255, 0.8); }
-    .hidden-section { display: none; }
+    .hidden-section { display: none !important; }
+    .nav-active { background-color: #047857 !important; color: white !important; }
   </style>
 </head>
 <body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex">
@@ -74,7 +75,7 @@
       </div>
     </div>
     <nav class="flex-1 px-3 space-y-1">
-      <a href="#" onclick="switchSection('section-overview')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-700 text-white font-medium text-sm transition-all" data-section="section-overview">
+      <a href="#" onclick="switchSection('section-overview')" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-700 text-white font-medium text-sm transition-all nav-active" data-section="section-overview">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2,2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
         Ecosystem Overview
       </a>
@@ -194,15 +195,15 @@
                 <span id="nutrientStatusTag" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border">Status</span>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div id="card-govt" class="p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:border-emerald-500 transition-all">
                   <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Govt Available Additives</h4>
                   <p id="remedyGovt" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
                 </div>
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div id="card-home" class="p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:border-emerald-500 transition-all">
                   <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Homemade Remedy</h4>
                   <p id="remedyHome" class="text-sm text-slate-700 leading-relaxed">Select a nutrient to see recommendations.</p>
                 </div>
-                <div class="p-4 rounded-xl border border-rose-200 bg-rose-50">
+                <div id="card-emergency" class="p-4 rounded-xl border border-rose-200 bg-rose-50 cursor-pointer hover:border-rose-500 transition-all">
                   <h4 class="text-xs font-bold text-rose-600 uppercase mb-2">Emergency Action</h4>
                   <p id="remedyEmergency" class="text-sm text-rose-700 leading-relaxed">Select a nutrient to see recommendations.</p>
                 </div>
@@ -326,13 +327,23 @@
     let sessionToken = null;
     let currentFarmerId = null;
 
-    // Helper for safe DOM updates
+    // DOM Helper
     function setElementText(id, text) {
       const el = document.getElementById(id);
       if (el) el.innerText = text;
     }
 
+    function setElementClass(id, className, action = 'add') {
+      const el = document.getElementById(id);
+      if (el) {
+        if (action === 'add') el.classList.add(className);
+        else if (action === 'remove') el.classList.remove(className);
+        else el.className = className;
+      }
+    }
+
     function switchSection(sectionId) {
+      console.log(`Switching to section: ${sectionId}`);
       const sections = ['section-overview', 'section-telemetry', 'section-network', 'section-history'];
       sections.forEach(id => {
         const el = document.getElementById(id);
@@ -342,11 +353,10 @@
       if (target) target.classList.remove('hidden-section');
 
       document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('bg-emerald-700', 'text-white');
+        link.classList.remove('nav-active', 'bg-emerald-700', 'text-white');
         link.classList.add('text-slate-400');
         if (link.getAttribute('data-section') === sectionId) {
-          link.classList.add('bg-emerald-700', 'text-white');
-          link.classList.remove('text-slate-400');
+          link.classList.add('nav-active');
         }
       });
     }
@@ -455,7 +465,7 @@
         const telemetry = reading.telemetry || {};
         const alerts = reading.alerts || [];
 
-        // Update Metrics (Corrected keys)
+        // Update Metrics
         setElementText('valN', Math.round(telemetry.nitrogen || 0));
         setElementText('valP', Math.round(telemetry.phosphorus || 0));
         setElementText('valK', Math.round(telemetry.potassium || 0));
@@ -508,19 +518,19 @@
           const histData = await histRes.json();
           const history = histData.history || [];
           const chronological = [...history].reverse();
-          const labels = chronological.map(r => r.timestamp.split('T')[1].substring(0, 8));
+          const labels = chronological.map(r => r.timestamp ? r.timestamp.split('T')[1].substring(0, 8) : 'N/A');
 
           if (npkChart) {
             npkChart.data.labels = labels;
-            npkChart.data.datasets[0].data = chronological.map(r => r.nitrogen);
-            npkChart.data.datasets[1].data = chronological.map(r => r.phosphorus);
-            npkChart.data.datasets[2].data = chronological.map(r => r.potassium);
+            npkChart.data.datasets[0].data = chronological.map(r => r.nitrogen || 0);
+            npkChart.data.datasets[1].data = chronological.map(r => r.phosphorus || 0);
+            npkChart.data.datasets[2].data = chronological.map(r => r.potassium || 0);
             npkChart.update('none');
           }
           if (phMoistChart) {
             phMoistChart.data.labels = labels;
-            phMoistChart.data.datasets[0].data = chronological.map(r => r.ph);
-            phMoistChart.data.datasets[1].data = chronological.map(r => r.moisture);
+            phMoistChart.data.datasets[0].data = chronological.map(r => r.ph || 0);
+            phMoistChart.data.datasets[1].data = chronological.map(r => r.moisture || 0);
             phMoistChart.update('none');
           }
           const tableData = history.slice(0, 10);
@@ -528,10 +538,10 @@
           if (historyBody) {
             historyBody.innerHTML = tableData.map(row => `
               <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-4 font-mono text-slate-400">${row.timestamp.split('T')[1].substring(0, 8)}</td>
-                <td class="px-6 py-4 font-medium text-slate-700">${row.crop_profile}</td>
+                <td class="px-6 py-4 font-mono text-slate-400">${row.timestamp ? row.timestamp.split('T')[1].substring(0, 8) : 'N/A'}</td>
+                <td class="px-6 py-4 font-medium text-slate-700">${row.crop_profile || 'Unknown'}</td>
                 <td class="px-6 py-4 text-slate-600">${Math.round(row.nitrogen || 0)},${Math.round(row.phosphorus || 0)},${Math.round(row.potassium || 0)}</td>
-                <td class="px-6 py-4 font-medium text-slate-800">${row.ph}</td>
+                <td class="px-6 py-4 font-medium text-slate-800">${row.ph || '--'}</td>
                 <td class="px-6 py-4">
                   ${row.alerts ? `<span class="bg-rose-100 text-rose-800 border border-rose-200 font-medium px-2 py-0.5 rounded text-[10px]">${row.alerts}</span>` : `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded text-[10px]">None</span>`}
                 </td>
@@ -660,33 +670,55 @@
       });
     }
 
-    document.getElementById('cropSelect').addEventListener('change', async (e) => {
-      try {
-        const val = e.target.value;
-        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${encodeURIComponent(val)}`, { method: 'POST' });
+    // Safe Event Binding
+    window.addEventListener('DOMContentLoaded', () => {
+      const cropSel = document.getElementById('cropSelect');
+      if (cropSel) {
+        cropSel.addEventListener('change', async (e) => {
+          try {
+            const val = e.target.value;
+            await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${encodeURIComponent(val)}`, { method: 'POST' });
+            updateDashboard();
+          } catch (err) { console.error("Error switching profile:", err); }
+        });
+      }
+
+      ['filterAlerts', 'filterLimit'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateDashboard);
+      });
+
+      const btnSignIn = document.getElementById('btnSignIn');
+      if (btnSignIn) btnSignIn.onclick = handleAuth;
+
+      const btnPreview = document.getElementById('btnPreview');
+      if (btnPreview) btnPreview.onclick = () => {
+        sessionToken = "preview-mode";
+        currentFarmerId = "AGRO-PREVIEW-2026";
+        const modal = document.getElementById('authModal');
+        if (modal) modal.classList.add('hidden');
+        updateUserUI();
         updateDashboard();
-      } catch (err) { console.error("Error switching profile:", err); }
-    });
+      };
 
-    ['filterAlerts', 'filterLimit'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('change', updateDashboard);
-    });
+      const btnConnect = document.getElementById('btnConnect');
+      if (btnConnect) btnConnect.onclick = connectNeighbor;
 
-    document.getElementById('btnSignIn').onclick = handleAuth;
-    document.getElementById('btnPreview').onclick = () => {
-      sessionToken = "preview-mode";
-      currentFarmerId = "AGRO-PREVIEW-2026";
-      document.getElementById('authModal').classList.add('hidden');
-      updateUserUI();
+      const btnMyCode = document.getElementById('btnMyCode');
+      if (btnMyCode) btnMyCode.onclick = showMyCode;
+
+      initCharts();
+      loadRemedies();
+      setInterval(updateDashboard, 5000);
       updateDashboard();
-    };
-    document.getElementById('btnConnect').onclick = connectNeighbor;
-    document.getElementById('btnMyCode').onclick = showMyCode;
+    });
 
     function handleAuth() {
-      const id = document.getElementById('authId').value;
-      const token = document.getElementById('authToken').value;
+      const idEl = document.getElementById('authId');
+      const tokenEl = document.getElementById('authToken');
+      if (!idEl || !tokenEl) return;
+      const id = idEl.value;
+      const token = tokenEl.value;
       const body = new FormData();
       body.append('farmer_id', id);
       body.append('token', token);
@@ -697,7 +729,8 @@
           if (data.status === 'success' || data.status === 'registered') {
             sessionToken = data.token;
             currentFarmerId = data.farmer_id || (data.user ? data.user.farmer_id : 'Unknown');
-            document.getElementById('authModal').classList.add('hidden');
+            const modal = document.getElementById('authModal');
+            if (modal) modal.classList.add('hidden');
             updateUserUI();
             updateDashboard();
           } else {
@@ -712,11 +745,6 @@
       setElementText('userName', name);
       setElementText('userIdText', currentFarmerId || 'No Session');
     }
-
-    initCharts();
-    loadRemedies();
-    setInterval(updateDashboard, 5000);
-    updateDashboard();
   </script>
 </body>
 </html>

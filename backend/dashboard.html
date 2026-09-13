@@ -81,6 +81,7 @@
         <!-- Voice Recitation Controls -->
         <div class="flex items-center gap-3 pl-6 border-r border-slate-200 pr-6">
           <select id="voiceLang" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
+            <option value="hi-IN">Hindi (हिन्दी)</option>
             <option value="bn-IN">Bengali (বাংলা)</option>
             <option value="mr-IN">Marathi (मराठी)</option>
             <option value="te-IN">Telugu (తెలుగు)</option>
@@ -623,7 +624,8 @@
       }
       if (!found) {
         let nameKey = '';
-        if (langCode.startsWith('te')) nameKey = 'telugu';
+        if (langCode.startsWith('hi')) nameKey = 'hindi';
+        else if (langCode.startsWith('te')) nameKey = 'telugu';
         else if (langCode.startsWith('bn')) nameKey = 'bangla';
         else if (langCode.startsWith('mr')) nameKey = 'marathi';
         found = speechVoices.find(v => v.name.toLowerCase().includes(nameKey));
@@ -659,7 +661,24 @@
       const allBalanced = !nDeficient && !pDeficient && !kDeficient;
 
       let text = "";
-      if (lang === 'bn-IN') {
+      if (lang === 'hi-IN') {
+        let script = "नमस्ते किसान भाइयों। आपके खेत की वर्तमान स्थिति का विश्लेषण कर लिया गया है। ";
+        script += hasBioThreat
+          ? "सावधान! सेंसर द्वारा खेत में कीट या जड़ों में हानिकारक नेमाटोड के लक्षण पाए गए हैं। फसल के नुकसान से बचने के लिए तुरंत अनुशंसित कीटनाशक या सुरक्षात्मक उपाय करें। "
+          : "वर्तमान में खेत में किसी गंभीर कीट का प्रकोप नहीं है, फसल सुरक्षित है। ";
+        script += moistStatus === 'dry' ? "मिट्टी में नमी की कमी है, फसल को तुरंत हल्की सिंचाई की आवश्यकता है। " :
+                  moistStatus === 'waterlogged' ? "खेत में अतिरिक्त पानी जमा हो गया है, जल निकासी की व्यवस्था ठीक करें। " :
+                  "मिट्टी में नमी का स्तर बिल्कुल सही है। ";
+        if (allBalanced) {
+          script += "मिट्टी में सभी मुख्य पोषक तत्वों का संतुलन बहुत अच्छा बना हुआ है। ";
+        } else {
+          if (nDeficient) script += "नाइट्रोजन की कमी देखी गई है, बेहतर वानस्पतिक विकास के लिए यूरिया या जीवामृत का प्रयोग करें। ";
+          if (pDeficient) script += "फास्फोरस की कमी है, जड़ों को मजबूत बनाने और उपज बढ़ाने के लिए डीएपी या रॉक फॉस्फेट डालें। ";
+          if (kDeficient) script += "पोटैशियम की कमी को पूरा करने और फसल की रोग प्रतिरोधक क्षमता बढ़ाने के लिए पोटाश या लकड़ी की राख का इस्तेमाल करें। ";
+        }
+        script += "समय पर उचित देखभाल करें और अपनी फसल को सुरक्षित रखकर बेहतर पैदावार पाएं।";
+        text = script;
+      } else if (lang === 'bn-IN') {
         let script = "নমস্কার। আপনার খেতের বর্তমান অবস্থা বিশ্লেষণ করা হয়েছে। ";
         script += hasBioThreat
           ? "সাবধান! সেন্সরে ক্ষতিকারক পোকা বা নেমাটোডের উপস্থিতি লক্ষ্য করা গেছে। ফসল বাঁচাতে অবিলম্বে সুরক্ষা ব্যবস্থা গ্রহণ করুন। "

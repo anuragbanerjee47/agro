@@ -85,7 +85,7 @@
       </div>
     </div>
 
-    <nav class="flex-1 p-4 space-y-2">
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto min-h-0">
       <button onclick="showSection('overview')" id="nav-overview" class="nav-link nav-link-active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all hover:bg-slate-800 hover:text-white">
         <span>📊</span> <span data-i18n="menu.overview">Ecosystem Overview</span>
       </button>
@@ -103,7 +103,20 @@
       </button>
     </nav>
 
-    <div class="p-4 border-t border-slate-800 space-y-3">
+    <div class="px-4 pb-3 shrink-0 border-t border-slate-800/60 pt-3">
+      <label for="uiLangSelect" class="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block">
+        <span data-i18n="settings.language_label">Language:</span>
+      </label>
+      <select id="uiLangSelect" class="w-full bg-slate-900/80 text-slate-200 text-xs rounded-lg px-3 py-2 border border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/80 focus:border-emerald-600 transition-all cursor-pointer appearance-none">
+        <option value="en">English (US)</option>
+        <option value="bn">বাংলা (Bengali)</option>
+        <option value="te">తెలుగు (Telugu)</option>
+        <option value="mr">मराठी (Marathi)</option>
+        <option value="hi">हिन्दी (Hindi)</option>
+      </select>
+    </div>
+
+    <div class="p-4 border-t border-slate-800 space-y-3 shrink-0">
       <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
         <div class="flex items-center justify-between mb-1">
           <span class="text-[10px] uppercase font-bold text-slate-500" data-i18n="sidebar.node_status">Node Status</span>
@@ -553,6 +566,27 @@
 
     let currentLang = 'en';
     let TRANSLATIONS = {};
+    const UI_LANG_STORAGE_KEY = 'agronode_ui_lang';
+    const SUPPORTED_UI_LANGS = ['en', 'bn', 'te', 'mr', 'hi'];
+
+    function getStoredLanguage() {
+      const stored = localStorage.getItem(UI_LANG_STORAGE_KEY);
+      return SUPPORTED_UI_LANGS.includes(stored) ? stored : 'en';
+    }
+
+    function initLanguageSelector() {
+      const sel = document.getElementById('uiLangSelect');
+      if (!sel) return;
+      sel.value = getStoredLanguage();
+      sel.addEventListener('change', (e) => {
+        const lang = e.target.value;
+        if (!SUPPORTED_UI_LANGS.includes(lang)) return;
+        localStorage.setItem(UI_LANG_STORAGE_KEY, lang);
+        setLanguage(lang);
+        updateProfileUI();
+        updateDashboard();
+      });
+    }
 
     async function loadTranslations() {
       try {
@@ -593,12 +627,14 @@
     }
 
     function setLanguage(lang) {
-      currentLang = lang;
-      const dict = TRANSLATIONS[lang];
-      if (!dict) {
-        console.error(`Missing translation language: ${lang}`);
-        return;
+      const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+      if (!TRANSLATIONS[lang]) {
+        console.error(`Missing translation language: ${lang}, falling back to en`);
+        currentLang = TRANSLATIONS.en ? 'en' : lang;
+      } else {
+        currentLang = lang;
       }
+      if (!dict) return;
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if (dict[key] === undefined) {
@@ -612,6 +648,8 @@
         const titleKey = titleEl.getAttribute('data-i18n');
         if (dict[titleKey]) document.title = dict[titleKey];
       }
+      const langSel = document.getElementById('uiLangSelect');
+      if (langSel && SUPPORTED_UI_LANGS.includes(currentLang)) langSel.value = currentLang;
     }
 
     const CROP_MAP = {
@@ -1473,7 +1511,8 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       await loadTranslations();
-      setLanguage('en');
+      initLanguageSelector();
+      setLanguage(getStoredLanguage());
       updateProfileUI();
 
       checkAuth();

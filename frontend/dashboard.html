@@ -20,19 +20,20 @@
       to { transform: translate(-50%, 0); opacity: 1; }
     }
     .no-scrollbar::-webkit-scrollbar { display: none; }
+
     .spectrometry-card {
-      flex: 0 0 220px !important;
-      min-width: 220px !important;
-      max-width: 220px !important;
-      height: 140px !important;
-      padding: 16px !important;
+      flex: 0 0 calc((100% - (12px * 6)) / 7) !important;
+      min-width: calc((100% - (12px * 6)) / 7) !important;
+      max-width: calc((100% - (12px * 6)) / 7) !important;
+      height: 145px !important;
+      padding: 14px 10px !important;
       border-radius: 12px !important;
       box-sizing: border-box !important;
       scroll-snap-align: start;
     }
     .spectrometry-track {
       display: flex !important;
-      gap: 16px !important;
+      gap: 12px !important;
       overflow-x: auto !important;
       scroll-behavior: smooth !important;
       scroll-snap-type: x mandatory !important;
@@ -114,15 +115,22 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <label class="text-xs font-medium text-slate-500">Crop Group:</label>
-          <select id="cropSelect" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
-            <option value="group1">Group 1: Wetland [Rice, Sugarcane]</option>
-            <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
-            <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
-            <option value="group4">Group 4: Cash Crops</option>
-            <option value="group5">Group 5: Commercial Veg [Cabbage, Cauliflower, Okra, Brinjal]</option>
-            <option value="group6">Group 6: Plantation [Banana, Mango, Coconut, Tea]</option>
-          </select>
+          <div class="flex flex-col">
+            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1">Crop Profile</label>
+            <div class="flex gap-2">
+              <select id="cropGroupSelect" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
+                <option value="group1">Group 1: Wetland</option>
+                <option value="group2">Group 2: Cereals</option>
+                <option value="group3">Group 3: Solanaceae</option>
+                <option value="group4">Group 4: Cash Crops</option>
+                <option value="group5">Group 5: Commercial Veg</option>
+                <option value="group6">Group 6: Plantation</option>
+              </select>
+              <select id="specificCropSelect" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
+                <!-- Dynamic -->
+              </select>
+            </div>
+          </div>
         </div>
 
         <div class="flex items-center gap-3 pl-6 border-l border-slate-200">
@@ -195,59 +203,59 @@
           </div>
           <div id="specTrack" class="spectrometry-track no-scrollbar">
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-ca">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Calcium (Ca)</p>
-              <p id="val-ca" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 1000-2500 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Calcium (Ca)</p>
+              <p id="val-ca" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 1000-2500 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-mg">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Magnesium (Mg)</p>
-              <p id="val-mg" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 120-500 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Magnesium (Mg)</p>
+              <p id="val-mg" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 120-500 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-s">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Sulfur (S)</p>
-              <p id="val-s" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 15-40 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Sulfur (S)</p>
+              <p id="val-s" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 15-40 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-zn">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Zinc (Zn)</p>
-              <p id="val-zn" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 1.0-3.0 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Zinc (Zn)</p>
+              <p id="val-zn" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 1.0-3.0 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-fe">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Iron (Fe)</p>
-              <p id="val-fe" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 2.5-5.0 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Iron (Fe)</p>
+              <p id="val-fe" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 2.5-5.0 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-b">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Boron (B)</p>
-              <p id="val-b" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 0.5-1.5 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Boron (B)</p>
+              <p id="val-b" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 0.5-1.5 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-mn">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Mang. (Mn)</p>
-              <p id="val-mn" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 1.0-4.0 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Mang. (Mn)</p>
+              <p id="val-mn" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 1.0-4.0 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-cu">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Copper (Cu)</p>
-              <p id="val-cu" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 0.2-1.0 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Copper (Cu)</p>
+              <p id="val-cu" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 0.2-1.0 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-mo">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Molyb. (Mo)</p>
-              <p id="val-mo" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 0.05-0.2 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Molyb. (Mo)</p>
+              <p id="val-mo" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 0.05-0.2 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-cl">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Chlor. (Cl)</p>
-              <p id="val-cl" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 10-50 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Chlor. (Cl)</p>
+              <p id="val-cl" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 10-50 ppm</p>
             </div>
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-ni">
-              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Nickl. (Ni)</p>
-              <p id="val-ni" class="text-2xl font-bold text-slate-800">--</p>
-              <p class="text-[10px] text-slate-400 mt-1">Target: 0.01-0.1 ppm</p>
+              <p class="text-xs font-semibold text-slate-400 uppercase truncate">Nickl. (Ni)</p>
+              <p id="val-ni" class="text-xl font-bold text-slate-800 my-1">-- <span class="text-xs font-normal text-slate-500">ppm</span></p>
+              <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 0.01-0.1 ppm</p>
             </div>
           </div>
         </div>
@@ -343,14 +351,19 @@
             </div>
             <div class="pt-4 border-t border-slate-100">
               <label class="text-xs font-bold text-slate-500 block mb-2">Active Crop Group</label>
-              <select id="profileCropSelect" class="w-full bg-slate-50 px-4 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="group1">Group 1: Wetland [Rice, Sugarcane]</option>
-                <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
-                <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
-                <option value="group4">Group 4: Cash Crops</option>
-                <option value="group5">Group 5: Commercial Veg [Cabbage, Cauliflower, Okra, Brinjal]</option>
-                <option value="group6">Group 6: Plantation [Banana, Mango, Coconut, Tea]</option>
-              </select>
+              <div class="flex gap-3">
+                <select id="profileCropGroupSelect" class="flex-1 bg-slate-50 px-4 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="group1">Group 1: Wetland</option>
+                  <option value="group2">Group 2: Cereals</option>
+                  <option value="group3">Group 3: Solanaceae</option>
+                  <option value="group4">Group 4: Cash Crops</option>
+                  <option value="group5">Group 5: Commercial Veg</option>
+                  <option value="group6">Group 6: Plantation</option>
+                </select>
+                <select id="profileSpecificCropSelect" class="flex-1 bg-slate-50 px-4 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                  <!-- Dynamic -->
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -446,8 +459,16 @@
     let activeNutrient = null;
     let activeRemedyType = 'Govt';
     let startTime = Date.now();
-    let currentLanguage = 'bn-IN';
     let isSpeaking = false;
+
+    const CROP_MAP = {
+      'group1': ['Rice', 'Sugarcane'],
+      'group2': ['Wheat', 'Barley', 'Maize'],
+      'group3': ['Potato', 'Tomato'],
+      'group4': ['Cotton', 'Jute', 'Tobacco'],
+      'group5': ['Cabbage', 'Cauliflower', 'Okra (Bhindi)', 'Eggplant (Brinjal)', 'Onion', 'Chili'],
+      'group6': ['Banana', 'Mango', 'Coconut', 'Areca Nut', 'Tea', 'Citrus']
+    };
 
     const TARGETS = {
       ca: [1000, 2500], mg: [120, 500], s: [15, 40],
@@ -465,16 +486,42 @@
       "Zinc": { "Govt": "Zinc Sulfate Heptahydrate 21% (10-12 kg/acre, ~₹50-70/kg); Zinc Sulfate Monohydrate 33% (6-8 kg/acre); Zinc EDTA 12%", "Home": "Galvanized iron scrap soak in 20 L water with 1 L sour buttermilk (10-14 days) or Compost-enriched Zinc dust (2 kg in 50 kg FYM)", "Emergency": "Foliar spray 500 g Zinc Sulfate (21%) + 250 g Lime in 100 L water/acre, or 100-150 g Zinc EDTA in 100 L water" },
       "Iron": { "Govt": "Ferrous Sulfate (FeSO4 19%; ~₹30-50/kg); Chelated Iron (Fe-EDTA 12% / Fe-EDDHA 6% for alkaline soils, ~₹150-300)", "Home": "Iron scrap + Jaggery water (2-3 kg rusted iron in 10 L water with 1 kg Jaggery for 10-14 days) or Sour Buttermilk iron extract", "Emergency": "Foliar spray 1 kg FeSO4 + 100 g Citric Acid in 100 L water/acre, or 100-150 g Fe-EDTA in 100 L water" },
       "Boron": { "Govt": "Borax 10.5% (2-3 kg/acre, ~₹80-120/kg); Solubor / Disodium Octaborate Tetrahydrate 20% (~₹150-250)", "Home": "Wood Ash (15-20 kg) + Cow Dung Compost (100 kg) or Household Borax powder (1 kg in 50 kg compost)", "Emergency": "Foliar spray 0.2% Solubor/Borax (200 g in 100 L water/acre) or Borax (150 g) + Jaggery (200 g) in 100 L water" },
-      "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA in 100 L water" },
-      "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented buttermilk (5 L sour buttermilk with copper scrap for 10-14 days) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
-      "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg) or Agricultural Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "Foliar spray 0.03%-0.05% Sodium Molybdate (30-50 g in 100 L water/acre) or Ash Water + Jaggery extract spray" },
+      "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA (12%) in 100 L water" },
+      "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented sour buttermilk (5 L sour buttermilk with copper scrap for 10-14 days until bluish-green; dilute into 200 L water) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture spray (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
+      "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg); or Slaked Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "0.03%-0.05% foliar spray (30-50 g Sodium Molybdate in 100 L water/acre) or Ash Water + Jaggery extract spray" },
       "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g non-iodized salt in 100 L water/acre) or regular borewell/well water irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
-      "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
+      "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry; or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Extremely low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
     };
 
     function safeSetText(id, text) {
       const el = document.getElementById(id);
       if (el) el.innerText = text;
+    }
+
+    function updateCropDropdowns() {
+      const groupSelect = document.getElementById('cropGroupSelect');
+      const specSelect = document.getElementById('specificCropSelect');
+      const profGroupSelect = document.getElementById('profileCropGroupSelect');
+      const profSpecSelect = document.getElementById('profileSpecificCropSelect');
+      if (!groupSelect || !specSelect) return;
+
+      const group = groupSelect.value;
+      const crops = CROP_MAP[group] || [];
+
+      specSelect.innerHTML = crops.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      // Sync with profile section
+      if (profGroupSelect) {
+        profGroupSelect.value = group;
+        updateProfileSpecificDropdown(group);
+      }
+    }
+
+    function updateProfileSpecificDropdown(group) {
+      const profSpecSelect = document.getElementById('profileSpecificCropSelect');
+      if (!profSpecSelect) return;
+      const crops = CROP_MAP[group] || [];
+      profSpecSelect.innerHTML = crops.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     function showSection(sectionId) {
@@ -741,7 +788,7 @@
         let script = "नमस्कार शेतकरी बंधूंनो. तुमच्या शेतीची सद्यस्थिती खालीलप्रमाणे आहे. ";
         script += hasBioThreat
           ? "सावधान! शेतात किडीचा किंवा मुळांमध्ये नेमाटोडचा प्रादुर्भाव आढळला आहे. तातडीने प्रतिबंधक फवारणी करा. "
-          : "पिकांवर कोणत्याही मोठ्या किडीचा प्रादुर्भाव नाही, शेत सुरक्षित आहे. ";
+          : "पिकांवर कोणत्याही मोठ्या किडीचा प्रादुर्भाव नाही, शेत सुरक्षित आहे। ";
         script += moistStatus === 'dry' ? "जमिनीत ओलावा कमी आहे, पिकांना त्वरित पाणी देण्याची गरज आहे. " :
                   moistStatus === 'waterlogged' ? "शेतात जास्त पाणी साचले आहे, पाण्याचा निचरा करा. " :
                   "जमिनीतील ओलावा पिकासाठी अगदी योग्य आहे. ";
@@ -838,13 +885,15 @@
           const val = tel[key] !== undefined ? tel[key] : (TARGETS[key][0] + TARGETS[key][1]) / 2;
           const el = document.getElementById('val-' + key);
           const card = document.getElementById('card-' + key);
-          if (el) el.innerText = val.toFixed(2) + ' ppm';
+          if (el) {
+            el.innerHTML = `${val.toFixed(2)} <span class="text-xs font-normal text-slate-500">ppm</span>`;
+          }
           if (card) {
             const [min, max] = TARGETS[key];
             if (val >= min && val <= max) {
-              card.className = 'bg-emerald-50 p-3 rounded-2xl border border-emerald-100 text-center transition-all';
+              card.className = 'spectrometry-card bg-emerald-50 p-4 rounded-2xl border border-emerald-100 text-center transition-all';
             } else {
-              card.className = 'bg-amber-50 p-3 rounded-2xl border border-amber-100 text-center transition-all';
+              card.className = 'spectrometry-card bg-amber-50 p-4 rounded-2xl border border-amber-100 text-center transition-all';
             }
           }
         });
@@ -905,20 +954,37 @@
           document.getElementById('connStatus').innerText = res.ok ? "Request sent!" : "Error connecting";
         } catch (e) { console.error(e); }
       };
-      document.getElementById('cropSelect').onchange = async (e) => {
-        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST' });
-        updateDashboard();
-      };
-      document.getElementById('profileCropSelect').onchange = async (e) => {
-        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST'});
-        updateDashboard();
-      };
+
+      const groupSel = document.getElementById('cropGroupSelect');
+      if (groupSel) {
+        groupSel.onchange = async (e) => {
+          updateCropDropdowns();
+          await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST' });
+          updateDashboard();
+        };
+      }
+
+      const profGroupSel = document.getElementById('profileCropGroupSelect');
+      if (profGroupSel) {
+        profGroupSel.onchange = async (e) => {
+          updateProfileSpecificDropdown(e.target.value);
+          await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST'});
+          updateDashboard();
+        };
+      }
+
       document.getElementById('btnVoiceBrief').onclick = speakTelemetry;
 
       // Spectrometry Scroll Logic
       const specTrack = document.getElementById('specTrack');
-      document.getElementById('btnScrollLeft').onclick = () => specTrack.scrollBy({ left: -708, behavior: 'smooth' });
-      document.getElementById('btnScrollRight').onclick = () => specTrack.scrollBy({ left: 708, behavior: 'smooth' });
+      document.getElementById('btnScrollLeft').onclick = () => {
+        if (specTrack) specTrack.scrollBy({ left: -specTrack.clientWidth, behavior: 'smooth' });
+      };
+      document.getElementById('btnScrollRight').onclick = () => {
+        if (specTrack) specTrack.scrollBy({ left: specTrack.clientWidth, behavior: 'smooth' });
+      };
+
+      updateCropDropdowns();
     });
   </script>
 </body>

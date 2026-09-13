@@ -46,6 +46,31 @@
     .nav-link-active { background-color: #1e293b; border-left: 4px solid #10b981; color: white; }
     .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+    .nutrient-pill {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      user-select: none;
+    }
+    .nutrient-pill:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.1);
+    }
+    .nutrient-pill.active {
+      box-shadow: 0 0 0 2px white, 0 0 0 4px rgba(30, 41, 59, 0.2);
+      font-weight: 700;
+    }
+    .category-pill {
+      transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .category-pill.active {
+      background-color: #059669 !important;
+      color: white !important;
+      border-color: #059669 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
   </style>
 </head>
 <body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex">
@@ -220,18 +245,6 @@
             <div id="disease-alert-content"></div>
           </div>
 
-          <div id="remedy-action-container" style="display: none; margin: 14px 0;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
-                <span>🛠️</span> Prescribed Soil & Crop Remediation Actions
-              </span>
-              <span style="font-size: 0.72rem; color: #94a3b8;">Triggered by live telemetry diagnostics</span>
-            </div>
-            <div id="remedy-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
-              <!-- Dynamic remedy cards will be injected here -->
-            </div>
-          </div>
-
           <div id="specTrack" class="spectrometry-track no-scrollbar">
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-ca">
               <p class="text-xs font-semibold text-slate-400 uppercase truncate">Calcium (Ca)</p>
@@ -289,6 +302,41 @@
               <p class="text-[11px] text-slate-500 mt-1 whitespace-nowrap">Target: 0.01-0.1 ppm</p>
             </div>
           </div>
+
+          <!-- NEW DYNAMIC REMEDY PILL-BAR SYSTEM -->
+          <div id="remedy-action-container" style="display: none; margin-top: 24px;" class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span>
+                <h3 class="text-sm font-bold text-slate-800">Prescribed Crop & Soil Remediation Actions</h3>
+              </div>
+              <span class="text-[10px] font-medium text-slate-400 uppercase">Live Diagnostic Sync</span>
+            </div>
+
+            <!-- Row 1: Deficient Nutrients Pill Bar -->
+            <div id="nutrient-pill-row" class="flex flex-wrap gap-2 mb-4">
+              <!-- Dynamic pills injected here -->
+            </div>
+
+            <!-- Row 2: Category Selection Pill Bar -->
+            <div id="category-pill-row" class="flex gap-2 mb-6">
+              <button onclick="setRemedyCategory('Govt')" id="cat-Govt" class="category-pill px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all bg-emerald-600 text-white border-emerald-600">GOVT AVAILABLE</button>
+              <button onclick="setRemedyCategory('Home')" id="cat-Home" class="category-pill px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-50">HOME PREPARED</button>
+              <button onclick="setRemedyCategory('Emergency')" id="cat-Emergency" class="category-pill px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-50">EMERGENCY</button>
+            </div>
+
+            <!-- Unified Content Panel -->
+            <div id="remedy-content-panel" class="bg-slate-50 border border-slate-200 p-4 rounded-2xl relative min-h-[100px]">
+              <div id="remedy-panel-header" class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200">
+                <span id="remedy-active-nut" class="text-sm font-bold text-slate-800">Select a nutrient above</span>
+                <span id="remedy-active-cat" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">Govt</span>
+              </div>
+              <div id="remedy-panel-body" class="text-xs text-slate-600 leading-relaxed">
+                Select a flagged nutrient pill to see the precise application guidelines.
+              </div>
+            </div>
+          </div>
+        </div>
         </div>
 
         <!-- Charts -->
@@ -493,6 +541,11 @@
     let isSpeaking = false;
     window.activePathologyWarning = null;
 
+    // Remedy Engine Global State
+    window.activeDeficientNutrients = [];
+    window.selectedRemedyNutrient = null;
+    window.selectedRemedyCategory = 'Emergency';
+
     const CROP_MAP = {
       'group1': ['Rice', 'Sugarcane'],
       'group2': ['Wheat', 'Barley', 'Maize'],
@@ -513,18 +566,77 @@
     };
 
     const REMEDY_DATA = {
-      "Nitrogen": { "Govt": "Urea (46% N, ~₹266/45kg); Nano Urea Liquid (500 mL, ~₹225-240)", "Home": "Jeevamrut (10 kg cow dung, 10 L cow urine, 2 kg jaggery, 2 kg pulse flour in 200 L water; ferment 48-72 hrs)", "Emergency": "Foliar spray 2% conventional Urea solution (2 kg in 100 L water/acre)" },
-      "Phosphorus": { "Govt": "DAP (18:46:0, ~₹1,350/50kg); SSP (16% P2O5, ~₹350-400/50kg); Nano DAP (500 mL, ~₹600)", "Home": "Bone Meal / Charred Bone Dust (20-30% P2O5; apply 20-25 kg/acre near root zone)", "Emergency": "Foliar spray 1% MAP (12:61:0; 1 kg in 100 L water/acre) or 2-4 mL Nano DAP/L water" },
-      "Potassium": { "Govt": "MOP (Muriate of Potash, 60% K2O; 20-30 kg/acre); 0:0:50 Potassium Sulfate (~₹100-150/kg)", "Home": "Wood/Chulha Ash (10-15 kg/acre before irrigation) or Banana Peel Extract (15-20 peels steeped in 10 L water for 3 days)", "Emergency": "Foliar spray 1% 13:0:45 (Potassium Nitrate; 1 kg in 100 L water/acre) or Ash Water decanted spray" },
-      "Calcium": { "Govt": "Gypsum (CaSO4·2H2O; 100-200 kg/acre, ~₹100-200/50kg); Calcium Nitrate (1 kg, ~₹120-180)", "Home": "Edible Slaked Lime / Chuna (1 kg in 10 L water overnight, diluted into 200 L); Eggshell Powder (2-3 kg/acre)", "Emergency": "Foliar spray 0.5% Calcium Nitrate (500 g in 100 L water/acre) or Vinegar-Eggshell extract" },
-      "Magnesium": { "Govt": "Magnesium Sulfate / Epsom Salt (10-15 kg/acre, ~₹30-50/kg); Dolomite Limestone Dust (20-25 kg/acre)", "Home": "Household Epsom Salt drench (2 kg in 100 L water/acre around root zone)", "Emergency": "Foliar spray 1% Magnesium Sulfate (1 kg in 100 L water/acre) or Epsom (500 g) + Urea (500 g) in 100 L water" },
-      "Sulfur": { "Govt": "Elemental Sulfur (80%/90% WDG; 10-15 kg/acre, ~₹80-120/kg); SSP (11% S; 50-75 kg/acre)", "Home": "Onion & Garlic Waste Extract (5 kg peels steeped in 20 L water for 4 days) or Mustard Cake (10 kg in 50 L water)", "Emergency": "Foliar spray 0.5% Liquid Sulfur (40%/80% SC) or Ammonium Sulfate (500 g in 100 L water)" },
-      "Zinc": { "Govt": "Zinc Sulfate Heptahydrate 21% (10-12 kg/acre, ~₹50-70/kg); Zinc Sulfate Monohydrate 33% (6-8 kg/acre); Zinc EDTA 12%", "Home": "Galvanized iron scrap soak in 20 L water with 1 L sour buttermilk (10-14 days) or Compost-enriched Zinc dust (2 kg in 50 kg FYM)", "Emergency": "Foliar spray 500 g Zinc Sulfate (21%) + 250 g Lime in 100 L water/acre, or 100-150 g Zinc EDTA in 100 L water" },
-      "Iron": { "Govt": "Ferrous Sulfate (FeSO4 19%; ~₹30-50/kg); Chelated Iron (Fe-EDTA 12% / Fe-EDDHA 6% for alkaline soils, ~₹150-300)", "Home": "Iron scrap + Jaggery water (2-3 kg rusted iron in 10 L water with 1 kg Jaggery for 10-14 days) or Sour Buttermilk iron extract", "Emergency": "Foliar spray 1 kg FeSO4 + 100 g Citric Acid in 100 L water/acre, or 100-150 g Fe-EDTA in 100 L water" },
-      "Boron": { "Govt": "Borax 10.5% (2-3 kg/acre, ~₹80-120/kg); Solubor / Disodium Octaborate Tetrahydrate 20% (~₹150-250)", "Home": "Wood Ash (15-20 kg) + Cow Dung Compost (100 kg) or Household Borax powder (1 kg in 50 kg compost)", "Emergency": "Foliar spray 0.2% Solubor/Borax (200 g in 100 L water/acre) or Borax (150 g) + Jaggery (200 g) in 100 L water" },
-      "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA (12%) in 100 L water" },
-      "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented sour buttermilk (5 L sour buttermilk with copper sheets for 10-14 days until bluish-green; dilute into 200 L water) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture spray (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
-      "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg); or Slaked Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "0.03%-0.05% foliar spray (30-50 g Sodium Molybdate in 100 L water/acre) or Ash Water + Jaggery extract spray" },
+      "Nitrogen": {
+        "Govt": "Neem-Coated Urea (46% N; apply 50-100 kg/acre in split doses); Nano Urea Liquid (500 mL per acre foliar spray)",
+        "Home": "Jeevamrut (10 kg cow dung, 10 L cow urine, 2 kg jaggery, 2 kg pulse flour in 200 L water; ferment 48-72 hrs; apply 200 L/acre)",
+        "Emergency": "Rapid rescue foliar spray: 2% conventional Urea solution (2 kg in 100 L water/acre) repeated every 10 days"
+      },
+      "Phosphorus": {
+        "Govt": "Single Super Phosphate (SSP, 16% P2O5; 100-150 kg/acre); DAP (18:46:0; 50-75 kg/acre); Nano DAP (500 mL foliar)",
+        "Home": "Bone Meal / Charred Bone Dust (20-30% P2O5; apply 25 kg/acre near root zone) or Rock Phosphate (100 kg/acre)",
+        "Emergency": "Foliar spray 1% MAP (12:61:0; 1 kg in 100 L water/acre) or 2-4 mL Nano DAP/L water spray"
+      },
+      "Potassium": {
+        "Govt": "MOP (Muriate of Potash, 60% K2O; 20-40 kg/acre); 0:0:50 Potassium Sulfate (15-25 kg/acre)",
+        "Home": "Wood Ash (15-20 kg/acre broadcast before irrigation) or Banana Pseudostem Extract (steeped 10 L for 3 days; dilute 1:10)",
+        "Emergency": "Foliar spray 1% 13:0:45 (Potassium Nitrate; 1 kg in 100 L water/acre) or Ash-Water decanted spray"
+      },
+      "Calcium": {
+        "Govt": "Agricultural Gypsum (CaSO4·2H2O; 200-500 kg/acre); Calcium Nitrate (15-20 kg/acre broadcast)",
+        "Home": "Edible Slaked Lime (Chuna; 1 kg in 10 L water overnight, dilute to 200 L) or Eggshell liquid extract (boil 500g shells in 1L vinegar, dilute 1:100)",
+        "Emergency": "Foliar spray 0.5% Calcium Nitrate (500 g in 100 L water/acre) or Calcium Chloride (CaCl2) 0.2% spray"
+      },
+      "Magnesium": {
+        "Govt": "Magnesium Sulfate / Epsom Salt (10-20 kg/acre); Dolomite Limestone Dust (100-200 kg/acre)",
+        "Home": "Household Epsom Salt drench (2 kg in 100 L water/acre around root zone) or Magnesium-rich Compost tea",
+        "Emergency": "Foliar spray 1% Magnesium Sulfate (1 kg in 100 L water/acre) or Epsom (500 g) + Urea (500 g) in 100 L water"
+      },
+      "Sulfur": {
+        "Govt": "Elemental Sulfur (80% WDG; 10-15 kg/acre); Ammonium Sulfate (50-100 kg/acre broadcast)",
+        "Home": "Onion & Garlic Waste Extract (5 kg peels steeped in 20 L water for 4 days) or Mustard Cake slurry (10 kg/acre)",
+        "Emergency": "Foliar spray 0.5% Liquid Sulfur (40% SC) or Ammonium Sulfate (500 g in 100 L water/acre)"
+      },
+      "Zinc": {
+        "Govt": "Zinc Sulfate Heptahydrate 21% (10-12 kg/acre); Zinc EDTA 12% (Chelated; 5-10 kg/acre)",
+        "Home": "Galvanized iron scrap soak in 20 L water with 1 L sour buttermilk (14 days; apply as drench) or Compost-enriched Zinc dust",
+        "Emergency": "Foliar spray 0.5% Zinc Sulfate (500 g + 250 g Lime in 100 L water/acre) or 100-150 g Zinc EDTA in 100 L water"
+      },
+      "Iron": {
+        "Govt": "Ferrous Sulfate (FeSO4 19%; 10-20 kg/acre); Chelated Iron (Fe-EDTA 12% or Fe-EDDHA 6%; 5-10 kg/acre)",
+        "Home": "Iron scrap + Jaggery water (3 kg rusted iron in 10 L water with 1 kg Jaggery for 14 days) or Sour Buttermilk iron extract",
+        "Emergency": "Foliar spray 1 kg FeSO4 + 100 g Citric Acid in 100 L water/acre, or 100-150 g Fe-EDTA (12%) in 100 L water"
+      },
+      "Boron": {
+        "Govt": "Borax 10.5% (2-5 kg/acre); Solubor / Disodium Octaborate Tetrahydrate 20% (1-2 kg/acre)",
+        "Home": "Wood Ash (20 kg) mixed with Cow Dung Compost (100 kg) or Household Borax powder (1 kg in 50 kg compost)",
+        "Emergency": "Foliar spray 0.2% Solubor/Borax (200 g in 100 L water/acre) or Borax (150 g) + Jaggery (200 g) in 100 L water"
+      },
+      "Manganese": {
+        "Govt": "Manganese Sulfate (MnSO4 30.5%; 5-10 kg/acre); Mn-EDTA 12% (Chelated; 2-5 kg/acre)",
+        "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg in 100 L water with 1 kg Jaggery)",
+        "Emergency": "Foliar spray 0.5% MnSO4 (500 g + 250 g Lime in 100 L water/acre) or 100-150 g Mn-EDTA (12%) in 100 L water"
+      },
+      "Copper": {
+        "Govt": "Copper Sulfate / Blue Vitriol (24% Cu; 2-5 kg/acre); Cu-EDTA 12% (Chelated; 1-3 kg/acre)",
+        "Home": "Copper pot fermented sour buttermilk (5 L buttermilk with copper sheets for 14 days; dilute 1:40)",
+        "Emergency": "Bordeaux Mixture spray (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray"
+      },
+      "Molybdenum": {
+        "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre); State Micronutrient Mixtures",
+        "Home": "Wood ash (15 kg) + FYM (100 kg) or Slaked Lime (150 kg/acre to increase pH and unlock native Mo)",
+        "Emergency": "0.03%-0.05% foliar spray (30-50 g Sodium Molybdate in 100 L water/acre) or Ash Water + Jaggery extract spray"
+      },
+      "Chlorine": {
+        "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl; 10-20 kg/acre)",
+        "Home": "Common Rock Salt / Sea Salt (250 g non-iodized salt in 100 L water/acre) or regular borewell irrigation",
+        "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water"
+      },
+      "Nickel": {
+        "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)",
+        "Home": "Mustard cake (10 kg) + cattle dung slurry or Pond Silt / Talab Ki Mitti (200 kg/acre)",
+        "Emergency": "Extremely low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)"
+      }
+    };100 kg); or Slaked Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "0.03%-0.05% foliar spray (30-50 g Sodium Molybdate in 100 L water/acre) or Ash Water + Jaggery extract spray" },
       "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g non-iodized salt in 100 L water/acre) or regular borewell/well water irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
       "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry; or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Extremely low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
     };
@@ -1048,47 +1160,126 @@
       'ni': 'Nickel'
     };
 
-    function updateDynamicRemedies(tel, benchmarks) {
-      const grid = document.getElementById('remedy-cards-grid');
+    function evaluateAndRenderRemedyPills(tel, benchmarks) {
+      const pillRow = document.getElementById('nutrient-pill-row');
       const container = document.getElementById('remedy-action-container');
-      if (!grid || !container) return;
+      if (!pillRow || !container) return;
 
-      grid.innerHTML = '';
-      let hasAny = false;
+      window.activeDeficientNutrients = [];
 
-      // 1. Check for Micronutrient Deficiencies
+      // 1. Evaluate and classify deficiencies
       Object.keys(benchmarks).forEach(key => {
         const val = tel[key];
         const [min, max] = benchmarks[key];
         if (val !== undefined && val < min) {
-          hasAny = true;
           const nutName = NUTRIENT_MAP[key] || key;
-          const remedy = REMEDY_DATA[nutName]?.Govt || 'Consult agronomist for specialized remediation.';
-          grid.innerHTML += `
-            <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl shadow-sm transition-all hover:shadow-md">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-amber-600 text-xs font-bold uppercase">${nutName} Deficiency</span>
-                <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-mono">${val.toFixed(2)} < ${min}</span>
-              </div>
-              <p class="text-xs text-amber-900 leading-relaxed font-medium">${remedy}</p>
-            </div>`;
+          const severity = val < (min * 0.5) ? 'critical' : 'moderate';
+          window.activeDeficientNutrients.push({ name: nutName, severity, value: val, min });
         }
       });
 
-      // 2. Check for Pathology Warnings
+      // 2. Sort: Critical first
+      window.activeDeficientNutrients.sort((a, b) => {
+        if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+        if (a.severity !== 'critical' && b.severity === 'critical') return 1;
+        return 0;
+      });
+
+      // 3. Handle Pathology as Critical
       if (window.activePathologyWarning) {
-        hasAny = true;
-        grid.innerHTML += `
-          <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl shadow-sm transition-all hover:shadow-md">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-rose-600 text-xs font-bold uppercase">Pathology Alert</span>
-              <span class="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded font-mono">High Risk</span>
-            </div>
-            <p class="text-xs text-rose-900 leading-relaxed font-medium">${window.activePathologyWarning}</p>
-          </div>`;
+        window.activeDeficientNutrients.push({ name: 'Pathology', severity: 'critical' });
       }
 
-      container.style.display = hasAny ? 'block' : 'none';
+      // 4. Render Pills
+      pillRow.innerHTML = '';
+      if (window.activeDeficientNutrients.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'block';
+      window.activeDeficientNutrients.forEach(nut => {
+        const colorClass = nut.severity === 'critical' ? 'bg-rose-500/20 text-rose-300 border-rose-500' : 'bg-amber-500/20 text-amber-300 border-amber-500';
+        const isActive = window.selectedRemedyNutrient === nut.name;
+        pillRow.innerHTML += `
+          <button onclick="selectRemedyPill('${nut.name}', '${nut.severity}')"
+            class="nutrient-pill px-3 py-1 rounded-full text-[10px] font-bold border transition-all hover:scale-105 ${colorClass} ${isActive ? 'active' : ''}">
+            [ ${nut.name.toUpperCase()} (${nut.severity.toUpperCase()}) ]
+          </button>`;
+      });
+
+      // 5. Auto-select first deficient if none selected
+      if (!window.selectedRemedyNutrient && window.activeDeficientNutrients.length > 0) {
+        const first = window.activeDeficientNutrients[0];
+        selectRemedyPill(first.name, first.severity);
+      }
+    }
+
+    function selectRemedyPill(nut, severity) {
+      window.selectedRemedyNutrient = nut;
+
+      // Update pill active states
+      document.querySelectorAll('.nutrient-pill').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText.includes(nut.toUpperCase())) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Smart Category Selection
+      if (severity === 'critical') {
+        setRemedyCategory('Emergency');
+      } else if (severity === 'moderate') {
+        setRemedyCategory('Govt');
+      }
+
+      updateRemedyDisplay();
+    }
+
+    function setRemedyCategory(cat) {
+      window.selectedRemedyCategory = cat;
+      document.querySelectorAll('.category-pill').forEach(btn => {
+        btn.classList.remove('active');
+        btn.className = 'category-pill px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+      });
+      const activeBtn = document.getElementById('cat-' + cat);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.className += ' bg-emerald-600 text-white border-emerald-600';
+      }
+      updateRemedyDisplay();
+    }
+
+    function updateRemedyDisplay() {
+      const panelBody = document.getElementById('remedy-panel-body');
+      const activeCatSpan = document.getElementById('remedy-active-cat');
+      const activeNutSpan = document.getElementById('remedy-active-nut');
+
+      if (!panelBody) return;
+
+      if (!window.selectedRemedyNutrient) {
+        panelBody.innerHTML = 'Select a flagged nutrient pill to see the precise application guidelines.';
+        return;
+      }
+
+      if (window.selectedRemedyNutrient === 'Pathology') {
+        safeSetText('remedy-active-nut', `Pathology: ${window.activePathologyWarning}`);
+        panelBody.innerHTML = `<div class="text-rose-700 font-medium">⚠️ Immediate Action Required: ${window.activePathologyWarning}</div>`;
+        return;
+      }
+
+      const data = REMEDY_DATA[window.selectedRemedyNutrient];
+      if (!data) {
+        panelBody.innerText = "No remedy data available for this nutrient.";
+        return;
+      }
+
+      const remedy = data[window.selectedRemedyCategory] || "Remedy data not available for this category.";
+      safeSetText('remedy-active-nut', `${window.selectedRemedyNutrient} - ${window.selectedRemedyCategory}`);
+      safeSetText('remedy-active-cat', window.selectedRemedyCategory);
+
+      const steps = remedy.split(';');
+      panelBody.innerHTML = `<ul class="list-disc list-inside space-y-1">${steps.map(s => `<li>${s.trim()}</li>`).join('')}</ul>`;
     }
 
     async function updateDashboard() {
@@ -1156,7 +1347,7 @@
           }
         });
 
-        updateDynamicRemedies(tel, benchmarks);
+        evaluateAndRenderRemedyPills(tel, benchmarks);
 
         const bio = alerts.find(a => a.toLowerCase().includes('bio-threat'));
         if (bio) triggerThreat(bio);

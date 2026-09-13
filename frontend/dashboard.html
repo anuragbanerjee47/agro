@@ -83,6 +83,7 @@
           <select id="voiceLang" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
             <option value="bn-IN">Bengali (বাংলা)</option>
             <option value="mr-IN">Marathi (मराठी)</option>
+            <option value="te-IN">Telugu (తెలుగు)</option>
           </select>
           <button id="btnVoiceBrief" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm">
             <span id="voiceIcon">🔊</span>
@@ -424,7 +425,7 @@
       "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA in 100 L water" },
       "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented buttermilk (5 L sour buttermilk with copper scrap for 10-14 days) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
       "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg) or Agricultural Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "Foliar spray 0.03%-0.05% Sodium Molybdate (30-50 g in 100 L water/acre) or Ash Water + Jaggery extract spray" },
-      "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g non-iodized salt in 100 L water/acre) or deep well irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
+      "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g non-iodized salt in 100 L water/acre) or regular borewell/well water irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
       "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
     };
 
@@ -565,7 +566,7 @@
         plugins: { legend: { labels: { color: '#64748b', font: { size: 11 } } } },
         scales: {
           x: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } },
-          y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } }
+          y: { grid: { color: '#f1f5f9'}, ticks: { color: '#94a3b8' } }
         }
       };
       const ctxN = document.getElementById('npkChart');
@@ -601,21 +602,33 @@
     }
 
     // --- VOICE RECITATION ENGINE ---
-    function getRegionalVoice(langCode) {
-      const voices = window.speechSynthesis.getVoices();
-      // 1. Exact match for locale (bn-IN, mr-IN)
-      let matched = voices.find(v => v.lang === langCode || v.lang.replace('_', '-') === langCode);
-      // 2. Prefix match (bn, mr)
-      if (!matched) {
+    let speechVoices = [];
+
+    function initSpeechVoices() {
+      speechVoices = window.speechSynthesis.getVoices();
+    }
+    initSpeechVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = initSpeechVoices;
+    }
+
+    function resolveRegionalVoice(langCode) {
+      if (!speechVoices || speechVoices.length === 0) {
+        speechVoices = window.speechSynthesis.getVoices();
+      }
+      let found = speechVoices.find(v => v.lang === langCode || v.lang.replace('_', '-') === langCode);
+      if (!found) {
         const prefix = langCode.split('-')[0];
-        matched = voices.find(v => v.lang.startsWith(prefix));
+        found = speechVoices.find(v => v.lang.toLowerCase().startsWith(prefix));
       }
-      // 3. Match voice name if locale tag is missing in some browsers
-      if (!matched) {
-        const nameKey = langCode.startsWith('bn') ? 'bangla' : 'marathi';
-        matched = voices.find(v => v.name.toLowerCase().includes(nameKey));
+      if (!found) {
+        let nameKey = '';
+        if (langCode.startsWith('te')) nameKey = 'telugu';
+        else if (langCode.startsWith('bn')) nameKey = 'bangla';
+        else if (langCode.startsWith('mr')) nameKey = 'marathi';
+        found = speechVoices.find(v => v.name.toLowerCase().includes(nameKey));
       }
-      return matched;
+      return found;
     }
 
     async function speakTelemetry() {
@@ -639,9 +652,7 @@
       const Moist = tel.moisture || 0;
       const hasBioThreat = alerts.some(a => a.toLowerCase().includes('bio-threat'));
 
-      // Agronomic Diagnosis
       const moistStatus = Moist < 30 ? 'dry' : Moist > 70 ? 'waterlogged' : 'optimal';
-      const phStatus = PH < 6.0 ? 'acidic' : PH > 7.5 ? 'alkaline' : 'balanced';
       const nDeficient = N < 100;
       const pDeficient = P < 30;
       const kDeficient = K < 100;
@@ -649,48 +660,63 @@
 
       let text = "";
       if (lang === 'bn-IN') {
-        let script = "নমস্কার। আপনার খেতের সার্বিক অবস্থা খতিয়ে দেখা হয়েছে। ";
+        let script = "নমস্কার। আপনার খেতের বর্তমান অবস্থা বিশ্লেষণ করা হয়েছে। ";
         script += hasBioThreat
-          ? "সাবধান! আপনার জমিতে পোকা বা শিকড়ে ক্ষতিকারক নেমাটোডের লক্ষণ ধরা পড়েছে। অবিলম্বে জৈব বা জরুরি সুরক্ষামূলক স্প্রে প্রয়োগ করে ফসল বাঁচান। "
-          : "আপনার জমিতে কোনো গুরুতর কীটপতঙ্গের আক্রমণ নেই, ফসল সুরক্ষিত। ";
-
-        script += moistStatus === 'dry' ? "মাটিতে জলের ঘাটতি রয়েছে, অবিলম্বে হালকা সেচ দিন। " :
-                  moistStatus === 'waterlogged' ? "জমিতে জল জমে আছে, নিকাশী নালা পরিষ্কার করুন। " :
-                  "মাটির আর্দ্রতা একদম সঠিক পর্যায়ে আছে। ";
-
+          ? "সাবধান! সেন্সরে ক্ষতিকারক পোকা বা নেমাটোডের উপস্থিতি লক্ষ্য করা গেছে। ফসল বাঁচাতে অবিলম্বে সুরক্ষা ব্যবস্থা গ্রহণ করুন। "
+          : "বর্তমানে খেতে কোনো গুরুতর ক্ষতিকারক পোকার আক্রমণ নেই। ";
+        script += moistStatus === 'dry' ? "মাটিতে জলের পরিমাণ কম, জমিতে অবিলম্বে হালকা সেচ দিন। " :
+                  moistStatus === 'waterlogged' ? "মাটিতে অতিরিক্ত জল জমে আছে, নিকাশী ব্যবস্থা ঠিক করুন। " :
+                  "মাটির আর্দ্রতা একদম স্বাভাবিক রয়েছে। ";
         if (allBalanced) {
-          script += "নাইট্রোজেন, ফসফরাস এবং পটাশিয়ামের ভারসাম্য খুব ভালো। এই অবস্থা বজায় রাখলে ভালো ফলন নিশ্চিত হবে। ";
+          script += "মাটিতে প্রধান পুষ্টি উপাদানগুলির ভারসাম্য খুব ভালো রয়েছে। ";
         } else {
-          if (nDeficient) script += "নাইট্রোজেনের ঘাটতি মেটাতে ইউরিয়া বা জীবামৃত স্প্রে করার পরামর্শ দেওয়া হচ্ছে। ";
-          if (pDeficient) script += "শিকড় মজবুত করতে এবং ফলন বাড়াতে ডিএপি বা হাড়ের গুঁড়ো প্রয়োগ করুন। ";
-          if (kDeficient) script += "গাছের রোগ প্রতিরোধ ক্ষমতা বাড়াতে পটাশ বা কাঠের ছাই ব্যবহার করুন। ";
+          if (nDeficient) script += "নাইট্রোজেনের ঘাটতি রয়েছে, দ্রুত ইউরিয়া বা জীবামৃত স্প্রে করার পরামর্শ দেওয়া হচ্ছে। ";
+          if (pDeficient) script += "ফসফরাসের অভাব রয়েছে, শিকড়ের বৃদ্ধির জন্য ডিএপি বা হাড়ের গুঁড়ো দিন। ";
+          if (kDeficient) script += "পটাশিয়ামের অভাব মেটাতে পটাশ বা কাঠের ছাই ব্যবহার করুন। ";
         }
-        script += "সঠিক সময়ে পরিচর্যা করুন এবং আপনার ফসল সুস্থ রাখুন।";
+        script += "সঠিক সময়ে খেতের যত্ন নিন এবং আপনার ফসল সুরক্ষিত রাখুন।";
         text = script;
-      } else {
-        let script = "नमस्कार शेतकरी बंधूंनो. तुमच्या पिकांची आणि मातीची सद्यस्थिती खालीलप्रमाणे आहे. ";
+      } else if (lang === 'mr-IN') {
+        let script = "नमस्कार शेतकरी बंधूंनो. तुमच्या शेतीची सद्यस्थिती खालीलप्रमाणे आहे. ";
         script += hasBioThreat
-          ? "सावधान! तुमच्या शेतात किडीचा किंवा मुळांमध्ये नेमाटोडचा प्रादुर्भाव आढळून आला आहे. पिकांचे नुकसान टाळण्यासाठी तातडीने शिफारस केलेले प्रतिबंधक उपाय करा. "
-          : "पिकांवर कोणत्याही मोठ्या किडीचा प्रादुर्भाव नाही, तुमची शेती सुरक्षित आहे. ";
-
+          ? "सावधान! शेतात किडीचा किंवा मुळांमध्ये नेमाटोडचा प्रादुर्भाव आढळला आहे. तातडीने प्रतिबंधक फवारणी करा. "
+          : "पिकांवर कोणत्याही मोठ्या किडीचा प्रादुर्भाव नाही, शेत सुरक्षित आहे. ";
         script += moistStatus === 'dry' ? "जमिनीत ओलावा कमी आहे, पिकांना त्वरित पाणी देण्याची गरज आहे. " :
-                  moistStatus === 'waterlogged' ? "शेतात अतिरिक्त पाणी साचले आहे, पाण्याचा निचरा करा. " :
+                  moistStatus === 'waterlogged' ? "शेतात जास्त पाणी साचले आहे, पाण्याचा निचरा करा. " :
                   "जमिनीतील ओलावा पिकासाठी अगदी योग्य आहे. ";
-
         if (allBalanced) {
-          script += "मातीतील एन-पी-के आणि अन्नद्रव्यांचे प्रमाण अतिशय उत्तम आहे. पिकाची अशीच काळजी घेतल्यास भरघोस उत्पादन नक्की मिळेल. ";
+          script += "मातीतील एन-पी-के आणि सर्व पोषणमूल्ये अतिशय उत्तम आहेत. ";
         } else {
-          if (nDeficient) script += "पिकाच्या चांगल्या वाढीसाठी युरिया किंवा जीवामृताचा वापर करा. ";
-          if (pDeficient) script += "मुळांच्या मजबुतीसाठी आणि उत्तम उत्पादनासाठी डीएपी किंवा बोन मील खत द्या. ";
-          if (kDeficient) script += "रोगांपासून संरक्षणासाठी आणि दाणेदार पिकासाठी पोटॅश किंवा लाकडी राख वापरा. ";
+          if (nDeficient) script += "नायट्रोजनच्या कमतरतेसाठी युरिया किंवा जीवामृत वापरा. ";
+          if (pDeficient) script += "फॉस्फरसच्या कमतरतेसाठी डीएपी किंवा बोन मील खत द्या. ";
+          if (kDeficient) script += "पोटॅशियम वाढवण्यासाठी पिकांना पोटॅश किंवा लाकडी राख द्या. ";
         }
-        script += "नियमित देखरेख ठेवा आणि उत्तम उत्पन्न मिळवा.";
+        script += "वेळेवर काळजी घ्या आणि भरघोस उत्पादन मिळवा.";
+        text = script;
+      } else if (lang === 'te-IN') {
+        let script = "నమస్కారం రైతు సోదరులారా. మీ పొలం ప్రస్తుత స్థితి వివరాలు: ";
+        script += hasBioThreat
+          ? "హెచ్చరిక! పొలంలో పురుగులు లేదా నెమటోడ్ల ఉనికి గుర్తించబడింది. వెంటనే నివారణ చర్యలు తీసుకోండి. "
+          : "పంటపై ఎటువంటి తీవ్రమైన తెగుళ్లు లేవు, పంట సురక్షితంగా ఉంది. ";
+        script += moistStatus === 'dry' ? "నేలలో తేమ తక్కువగా ఉంది, వెంటనే పంటకు తేలికపాటి నీటి తడులు ఇవ్వండి. " :
+                  moistStatus === 'waterlogged' ? "పొలంలో నీరు ఎక్కువగా నిలిచి ఉంది, నీటి పారుదల కాలువలను సరిచేయండి. " :
+                  "నేలలో తేమ శాతం అనుకూలంగా ఉంది. ";
+        if (allBalanced) {
+          script += "నేలలో పోషకాల సమతుల్యత చాలా బాగుంది. ";
+        } else {
+          if (nDeficient) script += "నత్రజని లోపం ఉంది, యూరియా లేదా జీవామృతం పిచికారీ చేయండి. ";
+          if (pDeficient) script += "భాస్వరం లోపం ఉంది, వేర్లు బలంగా ఉండటానికి డీఏపీ లేదా ఎముకల పొడి వాడండి. ";
+          if (kDeficient) script += "పొటాషియం లోపం నివారణకు పొటాష్ లేదా కట్టెల బూడిదను అందించండి. ";
+        }
+        script += "సరైన సమయంలో సస్యరక్షణ చర్యలు చేపట్టి మంచి దిగుబడి సాధించండి.";
         text = script;
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.voice = getRegionalVoice(lang);
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.voice = resolveRegionalVoice(lang);
 
       utterance.onstart = () => {
         isSpeaking = true;
@@ -747,7 +773,6 @@
         const mBar = document.getElementById('moistBar');
         if (mBar) mBar.style.width = `${moist}%`;
 
-        // MICRONUTRIENT BINDING
         Object.keys(TARGETS).forEach(key => {
           const val = tel[key] !== undefined ? tel[key] : (TARGETS[key][0] + TARGETS[key][1]) / 2;
           const el = document.getElementById('val-' + key);

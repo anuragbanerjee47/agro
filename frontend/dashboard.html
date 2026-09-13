@@ -174,7 +174,7 @@
     <main class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-[#f8fafc]">
 
       <!-- SECTION: OVERVIEW -->
-      <div id="section-overview" class="dashboard-view space-y-8">
+      <div id="view-overview" class="dashboard-view w-full space-y-8">
         <!-- Top Metric Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -337,10 +337,9 @@
             </div>
           </div>
         </div>
-        </div>
 
         <!-- Charts -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
           <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-96">
             <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
               <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
@@ -359,7 +358,7 @@
       </div>
 
       <!-- SECTION: TELEMETRY -->
-      <div id="section-telemetry" class="dashboard-view hidden-section space-y-8">
+      <div id="view-telemetry" class="dashboard-view w-full hidden space-y-8" style="display: none;">
         <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
           <h3 class="text-lg font-bold text-slate-800 mb-4">Detailed Field Telemetry</h3>
           <p class="text-sm text-slate-500 mb-6">Raw sensor output from Node ESP32_FIELD_NODE_01</p>
@@ -389,9 +388,17 @@
         </div>
       </div>
 
+      <!-- SECTION: NETWORK -->
+      <div id="view-network" class="dashboard-view w-full hidden space-y-8" style="display: none;">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm w-full">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">Neighbours Network</h3>
+          <p class="text-sm text-slate-500">Use the sidebar button to open the neighbours network panel for sharing codes and alerts.</p>
+        </div>
+      </div>
+
       <!-- SECTION: HISTORY -->
-      <div id="section-history" class="dashboard-view hidden-section space-y-8">
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div id="view-history" class="dashboard-view w-full hidden space-y-8" style="display: none;">
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden w-full">
           <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
             <h3 class="text-sm font-bold text-slate-800">Recent Field Scans</h3>
             <a id="exportCsvLink" href="/api/export" download class="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline">Export CSV</a>
@@ -414,7 +421,7 @@
       </div>
 
       <!-- SECTION: PROFILE -->
-      <div id="section-profile" class="dashboard-view hidden-section space-y-8">
+      <div id="view-profile" class="dashboard-view w-full hidden space-y-8" style="display: none;">
         <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-2xl">
           <h3 class="text-lg font-bold text-slate-800 mb-6">Farmer Profile & Settings</h3>
           <div class="space-y-6">
@@ -669,10 +676,25 @@
       profSpecSelect.innerHTML = crops.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
+    function switchView(viewId) {
+      const views = ['view-overview', 'view-telemetry', 'view-network', 'view-history', 'view-profile'];
+      views.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
+      });
+      const target = document.getElementById(viewId);
+      if (target) { target.classList.remove('hidden'); target.style.display = 'block'; }
+    }
+
     function showSection(sectionId) {
-      document.querySelectorAll('.dashboard-view').forEach(view => view.classList.add('hidden-section'));
-      const target = document.getElementById('section-' + sectionId);
-      if (target) target.classList.remove('hidden-section');
+      const viewMap = {
+        'overview': 'view-overview',
+        'telemetry': 'view-telemetry',
+        'network': 'view-network',
+        'history': 'view-history',
+        'profile': 'view-profile'
+      };
+      switchView(viewMap[sectionId] || 'view-overview');
 
       document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('nav-link-active'));
       const navBtn = document.getElementById('nav-' + sectionId);

@@ -20,7 +20,25 @@
       to { transform: translate(-50%, 0); opacity: 1; }
     }
     .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .spectrometry-card {
+      flex: 0 0 220px !important;
+      min-width: 220px !important;
+      max-width: 220px !important;
+      height: 140px !important;
+      padding: 16px !important;
+      border-radius: 12px !important;
+      box-sizing: border-box !important;
+      scroll-snap-align: start;
+    }
+    .spectrometry-track {
+      display: flex !important;
+      gap: 16px !important;
+      overflow-x: auto !important;
+      scroll-behavior: smooth !important;
+      scroll-snap-type: x mandatory !important;
+      scrollbar-width: none !important;
+      padding: 6px 2px !important;
+    }
     .nav-link-active { background-color: #1e293b; border-left: 4px solid #10b981; color: white; }
     .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
@@ -102,8 +120,8 @@
             <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
             <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
             <option value="group4">Group 4: Cash Crops</option>
-            <option value="group5">Group 5: Commercial Veg [Okra, Eggplant]</option>
-            <option value="group6">Group 6: Plantation [Banana, Mango]</option>
+            <option value="group5">Group 5: Commercial Veg [Cabbage, Cauliflower, Okra, Brinjal]</option>
+            <option value="group6">Group 6: Plantation [Banana, Mango, Coconut, Tea]</option>
           </select>
         </div>
 
@@ -163,72 +181,74 @@
         <!-- MICRONUTRIENT SPECTROMETRY STRIP -->
         <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
-              Live Micronutrient Spectrometry
-            </h3>
-            <span class="text-[10px] font-medium text-slate-400 uppercase">Real-time PPM Analysis</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <button id="btnScrollLeft" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all text-slate-600 font-bold">‹</button>
-            <div id="specTrack" class="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar" style="scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;">
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-ca">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Calcium (Ca)</p>
-                <p id="val-ca" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 1000-2500</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-mg">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Magnesium (Mg)</p>
-                <p id="val-mg" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 120-500</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-s">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Sulfur (S)</p>
-                <p id="val-s" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 15-40</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-zn">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Zinc (Zn)</p>
-                <p id="val-zn" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 1.0-3.0</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-fe">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Iron (Fe)</p>
-                <p id="val-fe" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 2.5-5.0</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-b">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Boron (B)</p>
-                <p id="val-b" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 0.5-1.5</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-mn">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Mang. (Mn)</p>
-                <p id="val-mn" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 1.0-4.0</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-cu">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Copper (Cu)</p>
-                <p id="val-cu" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 0.2-1.0</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-mo">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Molyb. (Mo)</p>
-                <p id="val-mo" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 0.05-0.2</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-cl">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Chlor. (Cl)</p>
-                <p id="val-cl" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 10-50</p>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-ni">
-                <p class="text-[10px] font-bold text-slate-500 uppercase">Nickl. (Ni)</p>
-                <p id="val-ni" class="text-lg font-bold text-slate-800">--</p>
-                <p class="text-[9px] text-slate-400">Target: 0.01-0.1</p>
+            <div class="flex items-center gap-4">
+              <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                Live Micronutrient Spectrometry
+              </h3>
+              <div class="flex gap-1">
+                <button id="btnScrollLeft" class="p-1 bg-slate-100 rounded-full hover:bg-slate-200 transition-all text-slate-600 font-bold px-2">‹</button>
+                <button id="btnScrollRight" class="p-1 bg-slate-100 rounded-full hover:bg-slate-200 transition-all text-slate-600 font-bold px-2">›</button>
               </div>
             </div>
-            <button id="btnScrollRight" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all text-slate-600 font-bold">›</button>
+            <span class="text-[10px] font-medium text-slate-400 uppercase">Real-time PPM Analysis</span>
+          </div>
+          <div id="specTrack" class="spectrometry-track no-scrollbar">
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-ca">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Calcium (Ca)</p>
+              <p id="val-ca" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 1000-2500 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-mg">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Magnesium (Mg)</p>
+              <p id="val-mg" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 120-500 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-s">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Sulfur (S)</p>
+              <p id="val-s" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 15-40 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-zn">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Zinc (Zn)</p>
+              <p id="val-zn" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 1.0-3.0 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-fe">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Iron (Fe)</p>
+              <p id="val-fe" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 2.5-5.0 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-b">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Boron (B)</p>
+              <p id="val-b" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 0.5-1.5 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-mn">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Mang. (Mn)</p>
+              <p id="val-mn" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 1.0-4.0 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-cu">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Copper (Cu)</p>
+              <p id="val-cu" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 0.2-1.0 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-mo">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Molyb. (Mo)</p>
+              <p id="val-mo" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 0.05-0.2 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-cl">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Chlor. (Cl)</p>
+              <p id="val-cl" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 10-50 ppm</p>
+            </div>
+            <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-ni">
+              <p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Nickl. (Ni)</p>
+              <p id="val-ni" class="text-2xl font-bold text-slate-800">--</p>
+              <p class="text-[10px] text-slate-400 mt-1">Target: 0.01-0.1 ppm</p>
+            </div>
           </div>
         </div>
 
@@ -328,8 +348,8 @@
                 <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
                 <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
                 <option value="group4">Group 4: Cash Crops</option>
-                <option value="group5">Group 5: Commercial Veg [Okra, Eggplant]</option>
-                <option value="group6">Group 6: Plantation [Banana, Mango]</option>
+                <option value="group5">Group 5: Commercial Veg [Cabbage, Cauliflower, Okra, Brinjal]</option>
+                <option value="group6">Group 6: Plantation [Banana, Mango, Coconut, Tea]</option>
               </select>
             </div>
           </div>
@@ -897,8 +917,8 @@
 
       // Spectrometry Scroll Logic
       const specTrack = document.getElementById('specTrack');
-      document.getElementById('btnScrollLeft').onclick = () => specTrack.scrollBy({ left: -320, behavior: 'smooth' });
-      document.getElementById('btnScrollRight').onclick = () => specTrack.scrollBy({ left: 320, behavior: 'smooth' });
+      document.getElementById('btnScrollLeft').onclick = () => specTrack.scrollBy({ left: -708, behavior: 'smooth' });
+      document.getElementById('btnScrollRight').onclick = () => specTrack.scrollBy({ left: 708, behavior: 'smooth' });
     });
   </script>
 </body>

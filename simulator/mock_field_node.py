@@ -62,7 +62,7 @@ def send_telemetry(anomaly_type=None):
         "mn": random.uniform(0.5, 2.0),
         "cu": random.uniform(0.1, 0.5),
         "mo": random.uniform(0.01, 0.2),
-        "cl": random.uniform(0.2, 1.0),
+        "cl": random.uniform(10, 50),
         "ni": random.uniform(0.01, 0.1),
     }
 

@@ -19,6 +19,8 @@
       from { transform: translate(-50%, -100%); opacity: 0; }
       to { transform: translate(-50%, 0); opacity: 1; }
     }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
     .nav-link-active { background-color: #1e293b; border-left: 4px solid #10b981; color: white; }
     .pulse-green { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
@@ -158,7 +160,7 @@
           </div>
         </div>
 
-        <!-- MICRONUTRIENT SPECTROMETRY GRID -->
+        <!-- MICRONUTRIENT SPECTROMETRY STRIP -->
         <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -167,47 +169,66 @@
             </h3>
             <span class="text-[10px] font-medium text-slate-400 uppercase">Real-time PPM Analysis</span>
           </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-zn">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Zinc (Zn)</p>
-              <p id="val-zn" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 1.0-3.0</p>
+          <div class="flex items-center gap-3">
+            <button id="btnScrollLeft" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all text-slate-600 font-bold">‹</button>
+            <div id="specTrack" class="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar" style="scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;">
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-ca">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Calcium (Ca)</p>
+                <p id="val-ca" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 1000-2500</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-mg">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Magnesium (Mg)</p>
+                <p id="val-mg" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 120-500</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-s">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Sulfur (S)</p>
+                <p id="val-s" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 15-40</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-zn">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Zinc (Zn)</p>
+                <p id="val-zn" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 1.0-3.0</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-fe">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Iron (Fe)</p>
+                <p id="val-fe" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 2.5-5.0</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-b">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Boron (B)</p>
+                <p id="val-b" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 0.5-1.5</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-mn">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Mang. (Mn)</p>
+                <p id="val-mn" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 1.0-4.0</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-cu">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Copper (Cu)</p>
+                <p id="val-cu" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 0.2-1.0</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-mo">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Molyb. (Mo)</p>
+                <p id="val-mo" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 0.05-0.2</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-cl">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Chlor. (Cl)</p>
+                <p id="val-cl" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 10-50</p>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all shrink-0 w-[160px]" id="card-ni">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Nickl. (Ni)</p>
+                <p id="val-ni" class="text-lg font-bold text-slate-800">--</p>
+                <p class="text-[9px] text-slate-400">Target: 0.01-0.1</p>
+              </div>
             </div>
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-fe">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Iron (Fe)</p>
-              <p id="val-fe" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 2.5-5.0</p>
-            </div>
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-b">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Boron (B)</p>
-              <p id="val-b" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 0.5-1.5</p>
-            </div>
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-mn">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Mang. (Mn)</p>
-              <p id="val-mn" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 1.0-4.0</p>
-            </div>
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-cu">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Copper (Cu)</p>
-              <p id="val-cu" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 0.2-1.0</p>
-            </div>
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-mo">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Molyb. (Mo)</p>
-              <p id="val-mo" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 0.05-0.2</p>
-            </div>
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-cl">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Chlor. (Cl)</p>
-              <p id="val-cl" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 10-50</p>
-            </div>
-            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center transition-all" id="card-ni">
-              <p class="text-[10px] font-bold text-slate-500 uppercase">Nickl. (Ni)</p>
-              <p id="val-ni" class="text-lg font-bold text-slate-800">--</p>
-              <p class="text-[9px] text-slate-400">Target: 0.01-0.1</p>
-            </div>
+            <button id="btnScrollRight" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all text-slate-600 font-bold">›</button>
           </div>
         </div>
 
@@ -409,6 +430,7 @@
     let isSpeaking = false;
 
     const TARGETS = {
+      ca: [1000, 2500], mg: [120, 500], s: [15, 40],
       zn: [1.0, 3.0], fe: [2.5, 5.0], b: [0.5, 1.5], mn: [1.0, 4.0],
       cu: [0.2, 1.0], mo: [0.05, 0.2], cl: [10, 50], ni: [0.01, 0.1]
     };
@@ -872,6 +894,11 @@
         updateDashboard();
       };
       document.getElementById('btnVoiceBrief').onclick = speakTelemetry;
+
+      // Spectrometry Scroll Logic
+      const specTrack = document.getElementById('specTrack');
+      document.getElementById('btnScrollLeft').onclick = () => specTrack.scrollBy({ left: -320, behavior: 'smooth' });
+      document.getElementById('btnScrollRight').onclick = () => specTrack.scrollBy({ left: 320, behavior: 'smooth' });
     });
   </script>
 </body>

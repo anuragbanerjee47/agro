@@ -109,7 +109,7 @@ class SystemState:
         # Expanded state for 14 nutrients
         self.latest_telemetry = {
             "nitrogen": 120.0, "phosphorus": 45.0, "potassium": 150.0,
-            "calcium": 200.0, "magnesium": 100.0, "sulfur": 80.0,
+            "ca": 1420.0, "mg": 240.5, "s": 22.4,
             "zinc": 1.5, "iron": 2.0, "boron": 0.5, "manganese": 1.0,
             "copper": 0.2, "molybdenum": 0.1, "chlorine": 0.5, "nickel": 0.05,
             "ph": 6.8, "moisture": 35.0, "canopy_temp": 24.0, "ambient_temp": 23.0,
@@ -236,7 +236,7 @@ def save_reading(device_id: str):
                 device_id,
                 state.active_profile,
                 tel.get("nitrogen", 0.0), tel.get("phosphorus", 0.0), tel.get("potassium", 0.0),
-                tel.get("calcium", 0.0), tel.get("magnesium", 0.0), tel.get("sulfur", 0.0),
+                tel.get("ca", 0.0), tel.get("mg", 0.0), tel.get("s", 0.0),
                 tel.get("zinc", 0.0), tel.get("iron", 0.0), tel.get("boron", 0.0), tel.get("manganese", 0.0),
                 tel.get("copper", 0.0), tel.get("molybdenum", 0.0), tel.get("chlorine", 0.0), tel.get("nickel", 0.0),
                 tel.get("ph", 7.0), tel.get("moisture", 0.0),

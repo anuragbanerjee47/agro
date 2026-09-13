@@ -12,7 +12,7 @@ from typing import List, Dict, Optional, Any
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict
 from contextlib import asynccontextmanager
 
@@ -497,6 +497,18 @@ async def serve_dashboard():
         logger.error(f"Dashboard HTML not found at {dashboard_path}")
         raise HTTPException(status_code=404, detail="Dashboard HTML not found")
     return dashboard_path
+
+@app.get("/translations.json")
+async def get_translations():
+    candidates = [
+        os.path.abspath(os.path.join(BASE_DIR, "..", "translations.json")),
+        os.path.join(BASE_DIR, "translations.json"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return FileResponse(path, media_type="application/json")
+    logger.error("translations.json not found in project root or backend folder")
+    return JSONResponse(status_code=404, content={"error": "translations not found"})
 
 @app.post("/api/telemetry")
 async def receive_telemetry(payload: TelemetryPayload):

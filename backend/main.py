@@ -127,6 +127,9 @@ class TelemetryPayload(BaseModel):
     timestamp: Optional[str] = None
     status: Optional[str] = "online"
     telemetry: Optional[Dict[str, Any]] = None
+    ca: Optional[float] = None
+    mg: Optional[float] = None
+    s: Optional[float] = None
 
 # --- Remedy Dataset ---
 REMEDY_DATA = {

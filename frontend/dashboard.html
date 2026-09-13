@@ -220,6 +220,18 @@
             <div id="disease-alert-content"></div>
           </div>
 
+          <div id="remedy-action-container" style="display: none; margin: 14px 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+                <span>🛠️</span> Prescribed Soil & Crop Remediation Actions
+              </span>
+              <span style="font-size: 0.72rem; color: #94a3b8;">Triggered by live telemetry diagnostics</span>
+            </div>
+            <div id="remedy-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+              <!-- Dynamic remedy cards will be injected here -->
+            </div>
+          </div>
+
           <div id="specTrack" class="spectrometry-track no-scrollbar">
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-ca">
               <p class="text-xs font-semibold text-slate-400 uppercase truncate">Calcium (Ca)</p>
@@ -1019,6 +1031,66 @@
       }
     }
 
+    const NUTRIENT_MAP = {
+      'nitrogen': 'Nitrogen',
+      'phosphorus': 'Phosphorus',
+      'potassium': 'Potassium',
+      'ca': 'Calcium',
+      'mg': 'Magnesium',
+      's': 'Sulfur',
+      'zn': 'Zinc',
+      'fe': 'Iron',
+      'b': 'Boron',
+      'mn': 'Manganese',
+      'cu': 'Copper',
+      'mo': 'Molybdenum',
+      'cl': 'Chlorine',
+      'ni': 'Nickel'
+    };
+
+    function updateDynamicRemedies(tel, benchmarks) {
+      const grid = document.getElementById('remedy-cards-grid');
+      const container = document.getElementById('remedy-action-container');
+      if (!grid || !container) return;
+
+      grid.innerHTML = '';
+      let hasAny = false;
+
+      // 1. Check for Micronutrient Deficiencies
+      Object.keys(benchmarks).forEach(key => {
+        const val = tel[key];
+        const [min, max] = benchmarks[key];
+        if (val !== undefined && val < min) {
+          hasAny = true;
+          const nutName = NUTRIENT_MAP[key] || key;
+          const remedy = REMEDY_DATA[nutName]?.Govt || 'Consult agronomist for specialized remediation.';
+          grid.innerHTML += `
+            <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl shadow-sm transition-all hover:shadow-md">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-amber-600 text-xs font-bold uppercase">${nutName} Deficiency</span>
+                <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-mono">${val.toFixed(2)} < ${min}</span>
+              </div>
+              <p class="text-xs text-amber-900 leading-relaxed font-medium">${remedy}</p>
+            </div>`;
+        }
+      });
+
+      // 2. Check for Pathology Warnings
+      if (window.activePathologyWarning) {
+        hasAny = true;
+        grid.innerHTML += `
+          <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl shadow-sm transition-all hover:shadow-md">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-rose-600 text-xs font-bold uppercase">Pathology Alert</span>
+              <span class="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded font-mono">High Risk</span>
+            </div>
+            <p class="text-xs text-rose-900 leading-relaxed font-medium">${window.activePathologyWarning}</p>
+          </div>`;
+      }
+
+      container.style.display = hasAny ? 'block' : 'none';
+    }
+
     async function updateDashboard() {
       try {
         const res = await fetch('/api/dashboard');
@@ -1083,6 +1155,8 @@
             }
           }
         });
+
+        updateDynamicRemedies(tel, benchmarks);
 
         const bio = alerts.find(a => a.toLowerCase().includes('bio-threat'));
         if (bio) triggerThreat(bio);

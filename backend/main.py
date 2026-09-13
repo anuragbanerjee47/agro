@@ -354,7 +354,7 @@ async def update_crop(token: str, crop_group: str):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid session")
 
-    valid_groups = ["group1", "group2", "group3", "group4"]
+    valid_groups = ["group1", "group2", "group3", "group4", "group5", "group6"]
     if crop_group not in valid_groups:
         raise HTTPException(status_code=400, detail="Invalid crop group")
 
@@ -586,7 +586,7 @@ async def get_remedies():
 
 @app.post("/api/profile")
 async def set_profile(group_key: str = Query(...)):
-    valid_groups = ["group1", "group2", "group3", "group4"]
+    valid_groups = ["group1", "group2", "group3", "group4", "group5", "group6"]
     if group_key not in valid_groups:
         raise HTTPException(status_code=400, detail="Invalid group key")
     state.active_profile = group_key

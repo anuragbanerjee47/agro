@@ -27,7 +27,7 @@
 <body class="bg-[#f8fafc] text-slate-800 h-screen overflow-hidden flex">
 
   <!-- 1. Left Sidebar -->
-  <aside class="w-64 bg-[#0f172a] text-slate-300 h-screen flex flex-col shrink-0 z-20 shadow-2xl">
+  <aside class="w-64 bg-[#0f172a] text-slate-300 h-screen flex flex-col shrink-�z-20 shadow-2xl">
     <div class="p-6 flex items-center gap-3 border-b border-slate-800">
       <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
       <div class="flex flex-col">
@@ -78,6 +78,19 @@
       </div>
 
       <div class="flex items-center gap-6">
+        <!-- Voice Recitation Controls -->
+        <div class="flex items-center gap-3 pl-6 border-r border-slate-200 pr-6">
+          <select id="voiceLang" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
+            <option value="bn-IN">Bengali (বাংলা)</option>
+            <option value="mr-IN">Marathi (मराठी)</option>
+          </select>
+          <button id="btnVoiceBrief" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm">
+            <span id="voiceIcon">🔊</span>
+            <span id="voiceBtnText">Listen Briefing</span>
+          </button>
+          <span id="voiceStatus" class="text-[10px] text-emerald-600 font-medium hidden">Reading telemetry...</span>
+        </div>
+
         <div class="flex items-center gap-3">
           <label class="text-xs font-medium text-slate-500">Crop Group:</label>
           <select id="cropSelect" class="bg-slate-50 text-slate-800 text-xs rounded-full px-3 py-1.5 border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all">
@@ -85,6 +98,8 @@
             <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
             <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
             <option value="group4">Group 4: Cash Crops</option>
+            <option value="group5">Group 5: Commercial Veg [Okra, Eggplant]</option>
+            <option value="group6">Group 6: Plantation [Banana, Mango]</option>
           </select>
         </div>
 
@@ -290,6 +305,8 @@
                 <option value="group2">Group 2: Cereals [Wheat, Barley, Maize]</option>
                 <option value="group3">Group 3: Solanaceae [Potato, Tomato]</option>
                 <option value="group4">Group 4: Cash Crops</option>
+                <option value="group5">Group 5: Commercial Veg [Okra, Eggplant]</option>
+                <option value="group6">Group 6: Plantation [Banana, Mango]</option>
               </select>
             </div>
           </div>
@@ -386,6 +403,8 @@
     let activeNutrient = null;
     let activeRemedyType = 'Govt';
     let startTime = Date.now();
+    let currentLanguage = 'bn-IN';
+    let isSpeaking = false;
 
     const TARGETS = {
       zn: [1.0, 3.0], fe: [2.5, 5.0], b: [0.5, 1.5], mn: [1.0, 4.0],
@@ -405,7 +424,7 @@
       "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA in 100 L water" },
       "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented buttermilk (5 L sour buttermilk with copper scrap for 10-14 days) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
       "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg) or Agricultural Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "Foliar spray 0.03%-0.05% Sodium Molybdate (30-50 g in 100 L water/acre) or Ash Water + Jaggery extract spray" },
-      "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g in 100 L water/acre) or deep well irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
+      "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g non-iodized salt in 100 L water/acre) or regular borewell/well water irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
       "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
     };
 
@@ -546,7 +565,7 @@
         plugins: { legend: { labels: { color: '#64748b', font: { size: 11 } } } },
         scales: {
           x: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } },
-          y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } }
+          y: { grid: { color: '#f1f5f9', ticks: { color: '#94a3b8' } } }
         }
       };
       const ctxN = document.getElementById('npkChart');
@@ -581,6 +600,73 @@
       }
     }
 
+    // --- VOICE RECITATION ENGINE ---
+    async function speakTelemetry() {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        setVoiceUIState(false);
+        isSpeaking = false;
+        return;
+      }
+
+      const lang = document.getElementById('voiceLang').value;
+      const res = await fetch('/api/dashboard');
+      const data = await res.json();
+      const tel = data.latest_reading?.telemetry || {};
+      const alerts = data.latest_reading?.alerts || [];
+
+      let text = "";
+      const N = tel.nitrogen || 0;
+      const P = tel.phosphorus || 0;
+      const K = tel.potassium || 0;
+      const PH = tel.ph || 7.0;
+      const Moist = tel.moisture || 0;
+      const threat = alerts.find(a => a.toLowerCase().includes('bio-threat'));
+
+      if (lang === 'bn-IN') {
+        text = `নমস্কার। আপনার বর্তমান মাটির অবস্থা: নাইট্রোজেন ${N} মিলিগ্রাম, ফসফরাস ${P} মিলিগ্রাম, পটাশিয়াম ${K} মিলিগ্রাম। মাটির পি এইচ ${PH} এবং আর্দ্রতা ${Moist} শতাংশ। ${threat ? 'সাবধান, সেন্সরে পোকা বা ক্ষতিকারক নেমাটোডের উপস্থিতি লক্ষ্য করা গেছে।' : 'সব উপাদান স্বাভাবিক রয়েছে।'}`;
+      } else {
+        text = `नमस्कार शेतकरी बंधूंनो. आपल्या शेतातील सध्याची स्थिती: नायट्रोजन ${N} मिलिग्रॅम, फॉस्फरस ${P} मिलिग्रॅम, पोटॅशियम ${K} मिलिग्रॅम. मातीचा सामू म्हणजेच पी एच ${PH} आणि ओलावा ${Moist} टक्के आहे. ${threat ? 'लक्ष द्या, सेन्सरने कीड किंवा नेमाटोडचा प्रादुर्भाव नोंदवला आहे.' : 'सर्व घटक स्थिर आहेत.'}`;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+
+      // Voice matching
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+      if (voice) utterance.voice = voice;
+
+      utterance.onstart = () => {
+        isSpeaking = true;
+        setVoiceUIState(true);
+      };
+      utterance.onend = () => {
+        isSpeaking = false;
+        setVoiceUIState(false);
+      };
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function setVoiceUIState(speaking) {
+      const btnText = document.getElementById('voiceBtnText');
+      const voiceIcon = document.getElementById('voiceIcon');
+      const status = document.getElementById('voiceStatus');
+      if (!btnText || !voiceIcon || !status) return;
+
+      if (speaking) {
+        btnText.innerText = "Stop Briefing";
+        voiceIcon.innerText = "⏹️";
+        status.classList.remove('hidden');
+      } else {
+        btnText.innerText = "Listen Briefing";
+        voiceIcon.innerText = "🔊";
+        status.classList.add('hidden');
+      }
+    }
+
     async function updateDashboard() {
       try {
         const res = await fetch('/api/dashboard');
@@ -606,7 +692,6 @@
         const mBar = document.getElementById('moistBar');
         if (mBar) mBar.style.width = `${moist}%`;
 
-        // MICRONUTRIENT BINDING
         Object.keys(TARGETS).forEach(key => {
           const val = tel[key] !== undefined ? tel[key] : (TARGETS[key][0] + TARGETS[key][1]) / 2;
           const el = document.getElementById('val-' + key);
@@ -683,9 +768,10 @@
         updateDashboard();
       };
       document.getElementById('profileCropSelect').onchange = async (e) => {
-        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST' });
+        await fetch(`/api/profile?token=${sessionToken || 'preview'}&group_key=${e.target.value}`, { method: 'POST'});
         updateDashboard();
       };
+      document.getElementById('btnVoiceBrief').onclick = speakTelemetry;
     });
   </script>
 </body>

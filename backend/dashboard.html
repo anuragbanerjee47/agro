@@ -151,7 +151,7 @@
       <!-- SECTION: OVERVIEW -->
       <div id="section-overview" class="space-y-8">
         <!-- Top Metric Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Soil NPK Levels</p>
             <div class="space-y-3">
@@ -187,6 +187,14 @@
               <div id="moistBar" class="bg-sky-500 h-full transition-all duration-700" style="width: 0%"></div>
             </div>
           </div>
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Pathology Risk</p>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-slate-500">System Status</span>
+              <span id="valPathology" class="text-xl font-bold text-slate-800">--</span>
+            </div>
+            <div id="pathologyTag" class="text-center py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border">Analyzing...</div>
+          </div>
         </div>
 
         <!-- MICRONUTRIENT SPECTROMETRY STRIP -->
@@ -204,6 +212,14 @@
             </div>
             <span class="text-[10px] font-medium text-slate-400 uppercase">Real-time PPM Analysis</span>
           </div>
+
+          <div id="disease-alert-box" style="display:none; margin: 12px 0; padding: 12px 16px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #fca5a5; font-size: 0.85rem; line-height: 1.4;">
+            <div style="font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: #f87171;">
+              <span>⚠️</span> AGRO-PATHOLOGY RISK ASSESSMENT
+            </div>
+            <div id="disease-alert-content"></div>
+          </div>
+
           <div id="specTrack" class="spectrometry-track no-scrollbar">
             <div class="spectrometry-card bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center transition-all" id="card-ca">
               <p class="text-xs font-semibold text-slate-400 uppercase truncate">Calcium (Ca)</p>
@@ -463,6 +479,7 @@
     let activeRemedyType = 'Govt';
     let startTime = Date.now();
     let isSpeaking = false;
+    window.activePathologyWarning = null;
 
     const CROP_MAP = {
       'group1': ['Rice', 'Sugarcane'],
@@ -470,13 +487,17 @@
       'group3': ['Potato', 'Tomato'],
       'group4': ['Cotton', 'Jute', 'Tobacco'],
       'group5': ['Cabbage', 'Cauliflower', 'Okra (Bhindi)', 'Eggplant (Brinjal)', 'Onion', 'Chili'],
-      'group6': ['Banana', 'Mango', 'Coconut', 'Areca Nut', 'Tea', 'Citrus']
+      'group6': ['Cotton', 'Banana', 'Papaya']
     };
 
-    const TARGETS = {
-      ca: [1000, 2500], mg: [120, 500], s: [15, 40],
-      zn: [1.0, 3.0], fe: [2.5, 5.0], b: [0.5, 1.5], mn: [1.0, 4.0],
-      cu: [0.2, 1.0], mo: [0.05, 0.2], cl: [10, 50], ni: [0.01, 0.1]
+    const CROP_BENCHMARKS = {
+      'group1': { ca: [1200, 2000], mg: [150, 400], s: [20, 40], zn: [25, 50], fe: [60, 200], b: [5, 15], mn: [40, 300], cu: [6, 15], mo: [0.1, 0.5], ni: [0.1, 1.0] },
+      'group2': { ca: [1000, 2500], mg: [120, 500], s: [15, 40], zn: [20, 50], fe: [50, 150], b: [6, 15], mn: [30, 100], cu: [5, 15], mo: [0.1, 0.5], ni: [0.1, 1.0] },
+      'group3': { ca: [1500, 3000], mg: [200, 600], s: [20, 50], zn: [25, 60], fe: [50, 200], b: [25, 60], mn: [30, 100], cu: [6, 20], mo: [1.0, 5.0], ni: [0.5, 2.5] },
+      'group4': { ca: [1000, 2000], mg: [100, 400], s: [10, 30], zn: [25, 50], fe: [50, 150], b: [30, 70], mn: [30, 100], cu: [6, 15], mo: [0.5, 2.0], ni: [0.2, 1.5] },
+      'group5': { ca: [1200, 2200], mg: [150, 450], s: [15, 35], zn: [30, 80], fe: [60, 300], b: [25, 60], mn: [40, 150], cu: [8, 20], mo: [0.5, 2.0], ni: [0.1, 1.0] },
+      'group6': { ca: [1500, 3500], mg: [200, 700], s: [20, 60], zn: [20, 60], fe: [50, 200], b: [20, 50], mn: [30, 150], cu: [5, 15], mo: [0.2, 1.0], ni: [0.1, 1.0] },
+      'default': { ca: [1000, 2500], mg: [120, 500], s: [15, 40], zn: [1.0, 3.0], fe: [2.5, 5.0], b: [0.5, 1.5], mn: [1.0, 4.0], cu: [0.2, 1.0], mo: [0.05, 0.2], cl: [10, 50], ni: [0.01, 0.1] }
     };
 
     const REMEDY_DATA = {
@@ -490,7 +511,7 @@
       "Iron": { "Govt": "Ferrous Sulfate (FeSO4 19%; ~₹30-50/kg); Chelated Iron (Fe-EDTA 12% / Fe-EDDHA 6% for alkaline soils, ~₹150-300)", "Home": "Iron scrap + Jaggery water (2-3 kg rusted iron in 10 L water with 1 kg Jaggery for 10-14 days) or Sour Buttermilk iron extract", "Emergency": "Foliar spray 1 kg FeSO4 + 100 g Citric Acid in 100 L water/acre, or 100-150 g Fe-EDTA in 100 L water" },
       "Boron": { "Govt": "Borax 10.5% (2-3 kg/acre, ~₹80-120/kg); Solubor / Disodium Octaborate Tetrahydrate 20% (~₹150-250)", "Home": "Wood Ash (15-20 kg) + Cow Dung Compost (100 kg) or Household Borax powder (1 kg in 50 kg compost)", "Emergency": "Foliar spray 0.2% Solubor/Borax (200 g in 100 L water/acre) or Borax (150 g) + Jaggery (200 g) in 100 L water" },
       "Manganese": { "Govt": "Manganese Sulfate (MnSO4 30.5%; 8-10 kg/acre, ~₹60-90/kg); Mn-EDTA 12%", "Home": "Compost + Wood Ash Tea (10 kg ash in 50 kg FYM) or Decayed Leaf Mold drench (20 kg leaf mold in 100 L water with 1 kg Jaggery)", "Emergency": "Foliar spray 500 g MnSO4 + 250 g Lime in 100 L water/acre, or 100-150 g Mn-EDTA (12%) in 100 L water" },
-      "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented sour buttermilk (5 L sour buttermilk with copper scrap for 10-14 days until bluish-green; dilute into 200 L water) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture spray (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
+      "Copper": { "Govt": "Copper Sulfate / Blue Vitriol (Neela Thotha 24% Cu; ~₹150-220/kg); Cu-EDTA 12%", "Home": "Copper pot fermented sour buttermilk (5 L sour buttermilk with copper sheets for 10-14 days until bluish-green; dilute into 200 L water) or Wood Ash + Copper scrap tea", "Emergency": "Bordeaux Mixture spray (500 g Copper Sulfate + 500 g Lime in 100 L water/acre) or Organic Copper buttermilk spray" },
       "Molybdenum": { "Govt": "Sodium Molybdate 52% or Ammonium Molybdate 54% (50-100 g/acre, ~₹150-250/100g); State Micronutrient Mixtures", "Home": "Wood ash (10-15 kg) + FYM (100 kg); or Slaked Lime (100-150 kg/acre to increase pH and unlock native Mo)", "Emergency": "0.03%-0.05% foliar spray (30-50 g Sodium Molybdate in 100 L water/acre) or Ash Water + Jaggery extract spray" },
       "Chlorine": { "Govt": "Muriate of Potash / MOP (5-10 kg/acre); Ammonium Chloride (25% N, 66% Cl)", "Home": "Common Rock Salt / Sea Salt (200-250 g non-iodized salt in 100 L water/acre) or regular borewell/well water irrigation", "Emergency": "Foliar spray 0.1% MOP (100-150 g in 100 L water/acre) or Rock Salt (50 g) + Jaggery (100 g) in 100 L water" },
       "Nickel": { "Govt": "Nickel Sulfate (NiSO4·6H2O; 20-50 g/acre); City Compost (e.g., Bharat Compost)", "Home": "Mustard cake (10 kg) + cattle dung slurry; or Pond Silt / Talab Ki Mitti (100-200 kg/acre)", "Emergency": "Extremely low-dose spray (5-10 g Nickel Sulfate in 100 L water/acre, 0.005%-0.01%) or Fermented Mustard Cake extract (1 L) + Urea (500 g)" }
@@ -725,6 +746,122 @@
       return found;
     }
 
+    function calculatePathologyRisk(tel, alerts) {
+      let riskScore = 0;
+      let status = "Low";
+      let colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+      let label = "Stable";
+
+      if (tel.pest_detected) riskScore += 40;
+      if (tel.nematode_detected) riskScore += 50;
+
+      // Nutrient-based pathology (extremely low values)
+      if (tel.zinc < 0.5) riskScore += 20;
+      if (tel.ph < 5.0 || tel.ph > 8.5) riskScore += 15;
+
+      if (riskScore >= 70) {
+        status = "Critical";
+        colorClass = "bg-rose-50 text-rose-700 border-rose-200";
+        label = "High Risk";
+      } else if (riskScore >= 30) {
+        status = "Moderate";
+        colorClass = "bg-amber-50 text-amber-700 border-amber-200";
+        label = "Warning";
+      } else {
+        status = "Low";
+        colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+        label = "Stable";
+      }
+
+      return { score: riskScore, status, colorClass, label };
+    }
+
+    function evaluatePathologyRisks(tel, activeGroup, activeCrop) {
+      const risks = [];
+      const benchmarks = CROP_BENCHMARKS[activeGroup] || CROP_BENCHMARKS['default'];
+
+      // K: Potassium
+      if (tel.potassium < 110) {
+        risks.push("High risk of wilt, stalk rot, stem borers, and lodging (stomata regulation compromised).");
+      }
+
+      // Zn: Zinc
+      const znMin = benchmarks.zn ? benchmarks.zn[0] : 0.6;
+      if (tel.zn < 0.6 || tel.zn < znMin) {
+        if (activeCrop === 'Rice' || activeCrop === 'Paddy') {
+          risks.push("CRITICAL: Khaira disease risk high (bronzing and severe stunting) — apply zinc sulfate immediately.");
+        } else {
+          risks.push("Risk of little leaf disorder and stunted internodes.");
+        }
+      }
+
+      // B: Boron
+      const bMin = benchmarks.b ? benchmarks.b[0] : 0.5;
+      if (tel.b < 0.5 || tel.b < bMin) {
+        risks.push("High risk of stem/fruit cracking and tip dieback (pathogen entry points exposed).");
+      }
+
+      // Mn: Manganese
+      const mnMin = benchmarks.mn ? benchmarks.mn[0] : 3.0;
+      if (tel.mn < 3.0 || tel.mn < mnMin) {
+        if (['group1', 'group2'].includes(activeGroup)) {
+          risks.push("Grey speck disease risk.");
+        } else {
+          risks.push("Severe interveinal chlorosis and impaired lignin synthesis.");
+        }
+      }
+
+      // Cu: Copper
+      const cuMin = benchmarks.cu ? benchmarks.cu[0] : 0.4;
+      if (tel.cu < 0.4 || tel.cu < cuMin) {
+        risks.push("Reclamation disease risk and terminal shoot dieback.");
+      }
+
+      // S: Sulfur
+      const sMin = benchmarks.s ? benchmarks.s[0] : 15.0;
+      if (tel.s < 15.0 || tel.s < sMin) {
+        risks.push("Compromised protein/amino acid synthesis and generalized pathogen vulnerability (especially pulses/oilseeds).");
+      }
+
+      // Fe: Iron
+      const feMin = benchmarks.fe ? benchmarks.fe[0] : 4.5;
+      if (tel.fe < 4.5 || tel.fe < feMin) {
+        risks.push("Severe interveinal chlorosis and suppressed photosynthesis.");
+      }
+
+      // Ca: Calcium
+      const caMin = benchmarks.ca ? benchmarks.ca[0] : 1000;
+      if (tel.ca < caMin) {
+        if (activeGroup === 'group5') {
+          risks.push("Blossom-end rot risk and cell wall collapse.");
+        } else {
+          risks.push("Tip burn and soft rot pathogen susceptibility.");
+        }
+      }
+
+      // Mo: Molybdenum
+      const moMin = benchmarks.mo ? benchmarks.mo[0] : 0.01;
+      if (tel.mo < moMin) {
+        if (['Cabbage', 'Cauliflower'].includes(activeCrop)) {
+          risks.push("Whiptail disease risk.");
+        } else if (['Peas', 'Beans', 'Lentils', 'Chickpeas', 'Soybean'].includes(activeCrop)) {
+          risks.push("Impaired symbiotic nitrogen fixation.");
+        }
+      }
+
+      const alertBox = document.getElementById('disease-alert-box');
+      const alertContent = document.getElementById('disease-alert-content');
+
+      if (risks.length > 0) {
+        alertContent.innerHTML = `<ul class="list-disc list-inside space-y-1">${risks.map(r => `<li>${r}</li>`).join('')}</ul>`;
+        alertBox.style.display = 'block';
+        window.activePathologyWarning = risks[0]; // Store highest priority
+      } else {
+        alertBox.style.display = 'none';
+        window.activePathologyWarning = null;
+      }
+    }
+
     async function speakTelemetry() {
       if (isSpeaking) {
         window.speechSynthesis.cancel();
@@ -746,6 +883,9 @@
       const Moist = tel.moisture || 0;
       const hasBioThreat = alerts.some(a => a.toLowerCase().includes('bio-threat'));
 
+      const pathRisk = calculatePathologyRisk(tel, alerts);
+      const riskStatus = pathRisk.status;
+
       const moistStatus = Moist < 30 ? 'dry' : Moist > 70 ? 'waterlogged' : 'optimal';
       const nDeficient = N < 100;
       const pDeficient = P < 30;
@@ -754,7 +894,12 @@
 
       let text = "";
       if (lang === 'hi-IN') {
-        let script = "नमस्ते किसान भाइयों। आपके खेत की वर्तमान स्थिति का विश्लेषण कर लिया गया है। ";
+        let script = "";
+        if (window.activePathologyWarning) {
+          script += `सावधान! खेत में रोग का खतरा पाया गया है। ${window.activePathologyWarning} समय पर उचित उपचार करें। `;
+        }
+        script += "नमस्ते किसान भाइयों। आपके खेत की वर्तमान स्थिति का विश्लेषण कर लिया गया है। ";
+        script += `आपके खेत का पैथोलॉजी रिस्क स्तर ${riskStatus} है। `;
         script += hasBioThreat
           ? "सावधान! सेंसर द्वारा खेत में कीट या जड़ों में हानिकारक नेमाटोड के लक्षण पाए गए हैं। फसल के नुकसान से बचने के लिए तुरंत अनुशंसित कीटनाशक या सुरक्षात्मक उपाय करें। "
           : "वर्तमान में खेत में किसी गंभीर कीट का प्रकोप नहीं है, फसल सुरक्षित है। ";
@@ -771,7 +916,12 @@
         script += "समय पर उचित देखभाल करें और अपनी फसल को सुरक्षित रखकर बेहतर पैदावार पाएं।";
         text = script;
       } else if (lang === 'bn-IN') {
-        let script = "নমস্কার। আপনার খেতের বর্তমান অবস্থা বিশ্লেষণ করা হয়েছে। ";
+        let script = "";
+        if (window.activePathologyWarning) {
+          script += `সাবধান! ফসলে রোগ সংক্রমণের ঝুঁকি দেখা দিয়েছে। ${window.activePathologyWarning} অবিলম্বে প্রয়োজনীয় ব্যবস্থা নিন। `;
+        }
+        script += "নমস্কার। আপনার খেতের বর্তমান অবস্থা বিশ্লেষণ করা হয়েছে। ";
+        script += `আপনার খেতের প্যাথলজি রিস্ক লেভেল ${riskStatus}। `;
         script += hasBioThreat
           ? "সাবধান! সেন্সরে ক্ষতিকারক পোকা বা নেমাটোডের উপস্থিতি লক্ষ্য করা গেছে। ফসল বাঁচাতে অবিলম্বে সুরক্ষা ব্যবস্থা গ্রহণ করুন। "
           : "বর্তমানে খেতে কোনো গুরুতর ক্ষতিকারক পোকার আক্রমণ নেই। ";
@@ -788,15 +938,20 @@
         script += "সঠিক সময়ে খেতের যত্ন নিন এবং আপনার ফসল সুরক্ষিত রাখুন।";
         text = script;
       } else if (lang === 'mr-IN') {
-        let script = "नमस्कार शेतकरी बंधूंनो. तुमच्या शेतीची सद्यस्थिती खालीलप्रमाणे आहे. ";
+        let script = "";
+        if (window.activePathologyWarning) {
+          script += `सावधान! पिकांवर रोगाचा प्रादुर्भाव होण्याची शक्यता आहे. ${window.activePathologyWarning} वेळीच योग्य ती काळजी घ्या. `;
+        }
+        script += "नमस्कार शेतकरी बंधूंनो. तुमच्या शेतीची सद्यस्थिती खालीलप्रमाणे आहे. ";
+        script += `तुमच्या शेतीचा पॅथोलॉजी रिस्क स्तर ${riskStatus} आहे। `;
         script += hasBioThreat
-          ? "सावधान! शेतात किडीचा किंवा मुळांमध्ये नेमाटोडचा प्रादुर्भाव आढळला आहे. तातडीने प्रतिबंधक फवारणी करा. "
+          ? "सावधान! शेतात किडीचा किंवा मुळांमध्ये नेमाटोडचा प्रादुर्भाव आढळला आहे। तातडीने प्रतिबंधक फवारणी करा. "
           : "पिकांवर कोणत्याही मोठ्या किडीचा प्रादुर्भाव नाही, शेत सुरक्षित आहे। ";
-        script += moistStatus === 'dry' ? "जमिनीत ओलावा कमी आहे, पिकांना त्वरित पाणी देण्याची गरज आहे. " :
+        script += moistStatus === 'dry' ? "जमिनीत ओलावा कमी आहे, पिकांना त्वरित पाणी देण्याची गरज आहे। " :
                   moistStatus === 'waterlogged' ? "शेतात जास्त पाणी साचले आहे, पाण्याचा निचरा करा. " :
-                  "जमिनीतील ओलावा पिकासाठी अगदी योग्य आहे. ";
+                  "जमिनीतील ओलावा पिकासाठी अगदी योग्य आहे। ";
         if (allBalanced) {
-          script += "मातीतील एन-पी-के आणि सर्व पोषणमूल्ये अतिशय उत्तम आहेत. ";
+          script += "मातीतील एन-पी-के आणि सर्व पोषणमूल्ये अतिशय उत्तम आहेत। ";
         } else {
           if (nDeficient) script += "नायट्रोजनच्या कमतरतेसाठी युरिया किंवा जीवामृत वापरा. ";
           if (pDeficient) script += "फॉस्फरसच्या कमतरतेसाठी डीएपी किंवा बोन मील खत द्या. ";
@@ -805,7 +960,12 @@
         script += "वेळेवर काळजी घ्या आणि भरघोस उत्पादन मिळवा.";
         text = script;
       } else if (lang === 'te-IN') {
-        let script = "నమస్కారం రైతు సోదరులారా. మీ పొలం ప్రస్తుత స్థితి వివరాలు: ";
+        let script = "";
+        if (window.activePathologyWarning) {
+          script += `హెచ్చరిక! పంటలో తెగుళ్లు వచ్చే ప్రమాదం ఉంది. ${window.activePathologyWarning} వెంటనే తగిన నివారణ చర్యలు చేపట్టండి. `;
+        }
+        script += "నమస్కారం రైతు సోదరులారా. మీ పొలం ప్రస్తుత స్థితి వివరాలు: ";
+        script += `మీ పొలం యొక్క ప్యాథాలజీ రిస్క్ స్థాయి ${riskStatus} అని గుర్తించబడింది. `;
         script += hasBioThreat
           ? "హెచ్చరిక! పొలంలో పురుగులు లేదా నెమటోడ్ల ఉనికి గుర్తించబడింది. వెంటనే నివారణ చర్యలు తీసుకోండి. "
           : "పంటపై ఎటువంటి తీవ్రమైన తెగుళ్లు లేవు, పంట సురక్షితంగా ఉంది. ";
@@ -884,15 +1044,38 @@
         const mBar = document.getElementById('moistBar');
         if (mBar) mBar.style.width = `${moist}%`;
 
-        Object.keys(TARGETS).forEach(key => {
-          const val = tel[key] !== undefined ? tel[key] : (TARGETS[key][0] + TARGETS[key][1]) / 2;
+        // Pathology Risk Card
+        const pathRisk = calculatePathologyRisk(tel, alerts);
+        safeSetText('valPathology', pathRisk.status);
+        const pTag = document.getElementById('pathologyTag');
+        if (pTag) {
+          pTag.innerText = pathRisk.label;
+          pTag.className = `text-center py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${pathRisk.colorClass}`;
+        }
+
+        // Agronomic Pathology Diagnostic Evaluator
+        const activeGroup = document.getElementById('cropGroupSelect')?.value || 'default';
+        const activeCrop = document.getElementById('specificCropSelect')?.value || '';
+        evaluatePathologyRisks(tel, activeGroup, activeCrop);
+
+        // Dynamic Micronutrient Benchmarks
+        const currentGroup = activeGroup;
+        const benchmarks = CROP_BENCHMARKS[currentGroup] || CROP_BENCHMARKS['default'];
+
+        Object.keys(benchmarks).forEach(key => {
+          const val = tel[key] !== undefined ? tel[key] : (benchmarks[key][0] + benchmarks[key][1]) / 2;
           const el = document.getElementById('val-' + key);
           const card = document.getElementById('card-' + key);
+          const targetText = document.querySelector(`#card-${key} .text-slate-500`);
+
           if (el) {
             el.innerHTML = `${val.toFixed(2)} <span class="text-xs font-normal text-slate-500">ppm</span>`;
           }
+          if (targetText) {
+            targetText.innerText = `Target: ${benchmarks[key][0]}-${benchmarks[key][1]} ppm`;
+          }
           if (card) {
-            const [min, max] = TARGETS[key];
+            const [min, max] = benchmarks[key];
             if (val >= min && val <= max) {
               card.className = 'spectrometry-card bg-emerald-50 p-4 rounded-2xl border border-emerald-100 text-center transition-all';
             } else {

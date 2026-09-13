@@ -601,6 +601,23 @@
     }
 
     // --- VOICE RECITATION ENGINE ---
+    function getRegionalVoice(langCode) {
+      const voices = window.speechSynthesis.getVoices();
+      // 1. Exact match for locale (bn-IN, mr-IN)
+      let matched = voices.find(v => v.lang === langCode || v.lang.replace('_', '-') === langCode);
+      // 2. Prefix match (bn, mr)
+      if (!matched) {
+        const prefix = langCode.split('-')[0];
+        matched = voices.find(v => v.lang.startsWith(prefix));
+      }
+      // 3. Match voice name if locale tag is missing in some browsers
+      if (!matched) {
+        const nameKey = langCode.startsWith('bn') ? 'bangla' : 'marathi';
+        matched = voices.find(v => v.name.toLowerCase().includes(nameKey));
+      }
+      return matched;
+    }
+
     async function speakTelemetry() {
       if (isSpeaking) {
         window.speechSynthesis.cancel();
@@ -615,27 +632,65 @@
       const tel = data.latest_reading?.telemetry || {};
       const alerts = data.latest_reading?.alerts || [];
 
-      let text = "";
       const N = tel.nitrogen || 0;
       const P = tel.phosphorus || 0;
       const K = tel.potassium || 0;
       const PH = tel.ph || 7.0;
       const Moist = tel.moisture || 0;
-      const threat = alerts.find(a => a.toLowerCase().includes('bio-threat'));
+      const hasBioThreat = alerts.some(a => a.toLowerCase().includes('bio-threat'));
 
+      // Agronomic Diagnosis
+      const moistStatus = Moist < 30 ? 'dry' : Moist > 70 ? 'waterlogged' : 'optimal';
+      const phStatus = PH < 6.0 ? 'acidic' : PH > 7.5 ? 'alkaline' : 'balanced';
+      const nDeficient = N < 100;
+      const pDeficient = P < 30;
+      const kDeficient = K < 100;
+      const allBalanced = !nDeficient && !pDeficient && !kDeficient;
+
+      let text = "";
       if (lang === 'bn-IN') {
-        text = `নমস্কার। আপনার বর্তমান মাটির অবস্থা: নাইট্রোজেন ${N} মিলিগ্রাম, ফসফরাস ${P} মিলিগ্রাম, পটাশিয়াম ${K} মিলিগ্রাম। মাটির পি এইচ ${PH} এবং আর্দ্রতা ${Moist} শতাংশ। ${threat ? 'সাবধান, সেন্সরে পোকা বা ক্ষতিকারক নেমাটোডের উপস্থিতি লক্ষ্য করা গেছে।' : 'সব উপাদান স্বাভাবিক রয়েছে।'}`;
+        let script = "নমস্কার। আপনার খেতের সার্বিক অবস্থা খতিয়ে দেখা হয়েছে। ";
+        script += hasBioThreat
+          ? "সাবধান! আপনার জমিতে পোকা বা শিকড়ে ক্ষতিকারক নেমাটোডের লক্ষণ ধরা পড়েছে। অবিলম্বে জৈব বা জরুরি সুরক্ষামূলক স্প্রে প্রয়োগ করে ফসল বাঁচান। "
+          : "আপনার জমিতে কোনো গুরুতর কীটপতঙ্গের আক্রমণ নেই, ফসল সুরক্ষিত। ";
+
+        script += moistStatus === 'dry' ? "মাটিতে জলের ঘাটতি রয়েছে, অবিলম্বে হালকা সেচ দিন। " :
+                  moistStatus === 'waterlogged' ? "জমিতে জল জমে আছে, নিকাশী নালা পরিষ্কার করুন। " :
+                  "মাটির আর্দ্রতা একদম সঠিক পর্যায়ে আছে। ";
+
+        if (allBalanced) {
+          script += "নাইট্রোজেন, ফসফরাস এবং পটাশিয়ামের ভারসাম্য খুব ভালো। এই অবস্থা বজায় রাখলে ভালো ফলন নিশ্চিত হবে। ";
+        } else {
+          if (nDeficient) script += "নাইট্রোজেনের ঘাটতি মেটাতে ইউরিয়া বা জীবামৃত স্প্রে করার পরামর্শ দেওয়া হচ্ছে। ";
+          if (pDeficient) script += "শিকড় মজবুত করতে এবং ফলন বাড়াতে ডিএপি বা হাড়ের গুঁড়ো প্রয়োগ করুন। ";
+          if (kDeficient) script += "গাছের রোগ প্রতিরোধ ক্ষমতা বাড়াতে পটাশ বা কাঠের ছাই ব্যবহার করুন। ";
+        }
+        script += "সঠিক সময়ে পরিচর্যা করুন এবং আপনার ফসল সুস্থ রাখুন।";
+        text = script;
       } else {
-        text = `नमस्कार शेतकरी बंधूंनो. आपल्या शेतातील सध्याची स्थिती: नायट्रोजन ${N} मिलिग्रॅम, फॉस्फरस ${P} मिलिग्रॅम, पोटॅशियम ${K} मिलिग्रॅम. मातीचा सामू म्हणजेच पी एच ${PH} आणि ओलावा ${Moist} टक्के आहे. ${threat ? 'लक्ष द्या, सेन्सरने कीड किंवा नेमाटोडचा प्रादुर्भाव नोंदवला आहे.' : 'सर्व घटक स्थिर आहेत.'}`;
+        let script = "नमस्कार शेतकरी बंधूंनो. तुमच्या पिकांची आणि मातीची सद्यस्थिती खालीलप्रमाणे आहे. ";
+        script += hasBioThreat
+          ? "सावधान! तुमच्या शेतात किडीचा किंवा मुळांमध्ये नेमाटोडचा प्रादुर्भाव आढळून आला आहे. पिकांचे नुकसान टाळण्यासाठी तातडीने शिफारस केलेले प्रतिबंधक उपाय करा. "
+          : "पिकांवर कोणत्याही मोठ्या किडीचा प्रादुर्भाव नाही, तुमची शेती सुरक्षित आहे. ";
+
+        script += moistStatus === 'dry' ? "जमिनीत ओलावा कमी आहे, पिकांना त्वरित पाणी देण्याची गरज आहे. " :
+                  moistStatus === 'waterlogged' ? "शेतात अतिरिक्त पाणी साचले आहे, पाण्याचा निचरा करा. " :
+                  "जमिनीतील ओलावा पिकासाठी अगदी योग्य आहे. ";
+
+        if (allBalanced) {
+          script += "मातीतील एन-पी-के आणि अन्नद्रव्यांचे प्रमाण अतिशय उत्तम आहे. पिकाची अशीच काळजी घेतल्यास भरघोस उत्पादन नक्की मिळेल. ";
+        } else {
+          if (nDeficient) script += "पिकाच्या चांगल्या वाढीसाठी युरिया किंवा जीवामृताचा वापर करा. ";
+          if (pDeficient) script += "मुळांच्या मजबुतीसाठी आणि उत्तम उत्पादनासाठी डीएपी किंवा बोन मील खत द्या. ";
+          if (kDeficient) script += "रोगांपासून संरक्षणासाठी आणि दाणेदार पिकासाठी पोटॅश किंवा लाकडी राख वापरा. ";
+        }
+        script += "नियमित देखरेख ठेवा आणि उत्तम उत्पन्न मिळवा.";
+        text = script;
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-
-      // Voice matching
-      const voices = window.speechSynthesis.getVoices();
-      const voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-      if (voice) utterance.voice = voice;
+      utterance.voice = getRegionalVoice(lang);
 
       utterance.onstart = () => {
         isSpeaking = true;
